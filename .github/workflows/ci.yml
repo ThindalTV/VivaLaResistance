@@ -26,11 +26,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Install MAUI workload
-        run: dotnet workload install maui
-
       - name: Restore
-        run: dotnet restore src/VivaLaResistance.slnx
+        run: dotnet restore src/VivaLaResistance.Tests/VivaLaResistance.Tests.csproj
 
       - name: Run tests
         run: dotnet test src/VivaLaResistance.Tests/VivaLaResistance.Tests.csproj --no-restore --verbosity normal
@@ -54,8 +51,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Install MAUI workload
-        run: dotnet workload install maui
+      - name: Install Android workload
+        run: dotnet workload install android
 
       - name: Restore
         run: dotnet restore src/VivaLaResistance.slnx
@@ -82,8 +79,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Install MAUI workload
-        run: dotnet workload install maui
+      - name: Install iOS workload
+        run: dotnet workload install ios
 
       - name: Restore
         run: dotnet restore src/VivaLaResistance.slnx
