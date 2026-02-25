@@ -77,3 +77,27 @@ Phase 2 is a **fine-tune job (~1–1.5 weeks)**, not a download-and-integrate ta
 **Key files:**
 - Approved decision: `.squad/decisions.md`
 - Orchestration log: `.squad/orchestration-log/2026-02-25T22-40-05Z-bruce.md`
+
+### 2026-07-18: ONNX NuGet Spike — PASS
+
+**Spike branch:** `squad/5-onnx-spike` → PR #39
+
+**Result: ✅ PASS**
+- `Microsoft.ML.OnnxRuntime 1.20.1` added to `VivaLaResistance.Services.csproj`
+- `dotnet restore src/VivaLaResistance.slnx` → succeeded (0.9s)
+- `dotnet build VivaLaResistance.Core` (net10.0) → succeeded
+- `dotnet build VivaLaResistance.Services` (net10.0) → succeeded with 1 expected warning (CS0649: `_session` never assigned — stub behavior, not an error)
+- NuGet version locked: **1.20.1** (stable as of early 2026)
+
+**Scaffolding delivered:**
+- `IResistorLocalizationService` in `Core.Interfaces` (BGRA8888 frame contract)
+- `ResistorBoundingBox` record in `Core.Models` (normalized coordinates [0,1])
+- `OnnxResistorLocalizationService` stub in `Services` (compiles against ONNX Runtime, returns empty list)
+- DI registration in `MauiProgram.cs` (⚠️ awaiting Rhodes review gate before merge)
+
+**Next actions:**
+1. Rhodes must review/approve MauiProgram.cs DI change before PR merges
+2. Begin model training pipeline: isha-74mjj dataset → YOLOv8n → ONNX export
+3. Implement real inference in `OnnxResistorLocalizationService.InitializeAsync` + `InferAsync` once model is available
+
+**Key file:** `.squad/decisions/inbox/bruce-onnx-spike-result.md`
