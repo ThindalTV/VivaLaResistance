@@ -4,11 +4,13 @@ using VivaLaResistance.Core.Models;
 
 /// <summary>
 /// Service for detecting resistors in camera frames using ML/vision processing.
+/// All camera frame inputs to this service MUST be in BGRA8888 format.
 /// </summary>
 public interface IResistorDetectionService
 {
     /// <summary>
     /// Detects resistors in the provided image frame.
+    /// Input frames MUST be in BGRA8888 format.
     /// </summary>
     /// <param name="imageData">Raw image data from the camera.</param>
     /// <param name="width">Width of the image in pixels.</param>
