@@ -26,6 +26,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
       - name: Restore
         run: dotnet restore src/VivaLaResistance.slnx
 
