@@ -52,3 +52,24 @@
 **Key files:**
 - Approved decision: `.squad/decisions.md`
 - Orchestration log: `.squad/orchestration-log/2026-02-25T22-40-05Z-rhodes.md`
+
+### 2026-02-25: Camera Pipeline COMPLETE + IFrameSource Scaffold + Lighting UX Live
+
+**Shuri's deliverables (PR #40):**
+- IFrameSource interface (BGRA8888 contract, frames with timestamp)
+- CameraFrame record model (pixel data, width, height, timestamp)
+- ILightingAnalyzer interface + SkiaSharpLightingAnalyzer
+  - Analyzes center 1/4 of frame via BT.601 luminance
+  - Classifies as: Good / TooDark / TooBright / Unknown
+- LightingIndicatorView XAML control (BindableProperty Quality)
+  - Shows semi-transparent warning banner when lighting insufficient
+- Updated IResistorDetectionService XML docs: BGRA8888 mandate explicitly documented
+- Registered ILightingAnalyzer as singleton in MauiProgram.cs
+
+**Open questions posted to Bruce:**
+1. Frame delivery timing (30 fps? adaptive? on-demand?)
+2. Thread context (main or background?)
+3. Buffer ownership (who allocates/frees byte[]?)
+4. Resize location (IFrameSource or Bruce's preprocessing?)
+
+**Status:** Architecture locked. Platform implementation (iOS/Android IFrameSource) is next — blocked waiting on Bruce's responses.

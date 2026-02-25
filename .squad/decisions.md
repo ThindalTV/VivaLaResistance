@@ -55,31 +55,38 @@
 
 **Dependencies (both required from start):**
 - `SkiaSharp` v3.* — pixel sampling, HSV conversion, color classification
-- `Microsoft.ML.OnnxRuntime` v1.* — ONNX model inference for localization
+- `Microsoft.ML.OnnxRuntime` v1.20.1 — ONNX model inference for localization (✅ Spike PASS)
 
 **Hard gates:**
-1. Bruce must verify Roboflow dataset license BEFORE training (CC-BY 4.0 acceptable with attribution)
-2. Hope must spike ONNX Runtime native lib resolution through MAUI head project
-3. Camera frame format contract: BGRA8888 (formalized)
-4. Lighting UX guidance still mandatory (HSV is lighting-sensitive)
+1. ✅ **PASS:** Bruce verified Roboflow dataset license is CC-BY 4.0 acceptable (with attribution)
+2. ✅ **PASS:** ONNX Runtime native lib resolution spike completed successfully — integrates cleanly through MAUI head build (Hope)
+3. ✅ **FORMALIZED:** Camera frame format contract: BGRA8888 (documented in IResistorDetectionService XML)
+4. ✅ **MANDATORY:** Lighting UX guidance implemented (SkiaSharpLightingAnalyzer + LightingIndicatorView, Shuri)
 5. 640px ONNX input default; 320px fallback based on real-device profiling
 
 **Binary size:** ~17MB (ONNX Runtime ~15MB + model ~6MB) — accepted tradeoff for localization robustness
-**Interface changes:** None — IResistorDetectionService already accommodates this architecture
+**Interface changes:** IResistorLocalizationService added (InitializeAsync, InferAsync); IResistorDetectionService unchanged
+
+**Scaffolding complete:**
+- IResistorLocalizationService + ResistorBoundingBox (Bruce, PR #39)
+- OnnxResistorLocalizationService stub (wired to DI, PR #39)
+- IFrameSource + CameraFrame (Shuri, PR #40)
+- ILightingAnalyzer + SkiaSharpLightingAnalyzer (Shuri, PR #40)
+- LightingIndicatorView XAML (Shuri, PR #40)
+- Colab training notebook (design/colab-training-notebook.ipynb, main branch)
 
 **Sprint ordering (revised):**
-| Task | Owner | Blocker |
+| Task | Owner | Status |
 |---|---|---|
-| Verify dataset license | Bruce | — |
-| ONNX native lib spike | Hope | — |
-| Train + export ONNX model | Bruce | License ✓ |
-| Camera frame pipeline (BGRA8888) | Shuri | — |
-| ONNX inference wrapper | Bruce | Spike ✓, Model ✓ |
-| HSV color classifier | Bruce | Frame format ✓ |
-| Compose full pipeline | Bruce | Wrapper + Classifier |
-| AR overlay rendering | Shuri | Pipeline |
-| Lighting UX guidance | Shuri | Frame format |
+| ONNX native lib spike | Hope | ✅ PASS |
+| Verify dataset license | Bruce | ✅ CC-BY 4.0 |
+| Train + export ONNX model | Bruce | Pending (notebook ready) |
+| Camera frame pipeline (BGRA8888) | Shuri | ✅ IFrameSource scaffold |
+| ONNX inference wrapper | Bruce | Pending model training |
+| HSV color classifier | Bruce | Pending frame format finalization |
+| Compose full pipeline | Bruce | Pending wrapper + classifier |
+| Lighting UX guidance | Shuri | ✅ LightingIndicatorView |
+| AR overlay rendering | Shuri | Pending pipeline |
 
-**Decision files:**
-- `.squad/decisions/inbox/bruce-onnx-model-research.md` (research & recommendation)
-- `.squad/decisions/inbox/rhodes-onnx-first-decision.md` (architecture decision)
+**Open items:**
+- Shuri's 4 questions for Bruce: frame rate, thread context, buffer ownership, resize location (documented in Bruce history.md)

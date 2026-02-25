@@ -104,3 +104,19 @@ A complete, runnable Google Colab notebook for training YOLOv8n on the resistor 
 **Post-inference NMS:** confidence threshold 0.25, IoU threshold 0.45
 
 **Asset placement:** rename exported file to `resistor-localization.onnx` -> `src/VivaLaResistance/Resources/Raw/` -> build action `MauiAsset`
+
+### 2026-02-25: ONNX Spike PASS + Shuri's Open Questions
+
+**Bruce's deliverables (PR #39):**
+- Microsoft.ML.OnnxRuntime v1.20.1 integrated cleanly; ✅ spike PASS
+- IResistorLocalizationService interface + ResistorBoundingBox record (normalized bbox [0,1])
+- OnnxResistorLocalizationService stub wired to DI
+- Native lib resolution confirmed to work through MAUI head build
+
+**Shuri's open questions for Bruce (from PR #40):**
+1. **Frame delivery timing:** At what frequency should IFrameSource deliver frames? (30 fps? adaptive?)
+2. **Thread context:** Should frame delivery happen on main thread or background thread?
+3. **Buffer ownership:** Who owns the byte[] buffer — Shuri's iOS/Android code or Bruce's inference service?
+4. **Resize location:** Should letterbox padding occur in IFrameSource (platform code) or in Bruce's ONNX preprocessing?
+
+**Status:** Awaiting Bruce's response on frame contract details before Shuri proceeds with iOS/Android IFrameSource platform implementation.
