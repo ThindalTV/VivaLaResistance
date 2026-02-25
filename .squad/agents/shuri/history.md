@@ -52,3 +52,23 @@
 **Key files:**
 - Approved decision: `.squad/decisions.md`
 - Orchestration log: `.squad/orchestration-log/2026-02-25T22-40-05Z-rhodes.md`
+
+### Camera Pipeline + Lighting UX (branch: squad/6-camera-pipeline, PR #40)
+
+**Key files created:**
+- `src/VivaLaResistance.Core/Interfaces/IFrameSource.cs` — camera frame delivery contract; events fire `CameraFrame` (BGRA8888)
+- `src/VivaLaResistance.Core/Interfaces/ILightingAnalyzer.cs` — lighting analysis interface + `LightingQuality` enum (Good/TooDark/TooBright/Unknown)
+- `src/VivaLaResistance.Core/Models/CameraFrame.cs` — record: `byte[] Data, int Width, int Height, DateTime Timestamp`
+- `src/VivaLaResistance.Services/SkiaSharpLightingAnalyzer.cs` — BT.601 luminance sampling; center-1/4 region, every 4th pixel; thresholds: dark < 0.2, bright > 0.85
+- `src/VivaLaResistance/Controls/LightingIndicatorView.xaml` + `.xaml.cs` — MAUI ContentView; `Quality` BindableProperty drives visibility + banner text
+
+**BGRA8888 contract location:**
+- `IFrameSource` XML doc: "All frames are delivered in BGRA8888 format"
+- `IResistorDetectionService` XML doc: "Input frames MUST be in BGRA8888 format" (method + class level)
+- `CameraFrame` record param doc: "Raw pixel data, BGRA8888"
+
+**Lighting analyzer approach:**
+- Pure math — no SkiaSharp API calls needed (BGRA8888 byte[] processed directly)
+- Samples center 1/4 of frame every 4th row/col for performance
+- BT.601 perceived luminance: `0.299R + 0.587G + 0.114B` normalized 0..1
+- `IFrameSource` platform implementation deferred — stub registration not needed (interface only, no DI registration required until platform handler lands)
