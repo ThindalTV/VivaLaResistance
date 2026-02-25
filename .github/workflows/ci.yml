@@ -62,7 +62,7 @@ jobs:
 
   build-ios:
     name: Build iOS (net10.0-ios)
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
 
