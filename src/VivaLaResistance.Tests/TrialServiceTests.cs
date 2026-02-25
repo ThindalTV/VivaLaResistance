@@ -1,5 +1,6 @@
 namespace VivaLaResistance.Tests;
 
+using VivaLaResistance.Core.Interfaces;
 using VivaLaResistance.Services;
 using Xunit;
 
