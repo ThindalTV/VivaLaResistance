@@ -1,0 +1,11 @@
+{
+  "assignments": [
+    {
+      "assignment_id": "vivalaresistance-2026-02-25",
+      "universe": "marvel-cinematic-universe",
+      "created_at": "2026-02-25T19:49:00Z",
+      "agents": ["Rhodes", "Shuri", "Bruce", "Natasha"],
+      "exempt": ["Scribe", "Ralph", "@copilot"]
+    }
+  ]
+}
