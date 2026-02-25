@@ -13,10 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 9
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -36,15 +36,15 @@ jobs:
         run: dotnet test src/VivaLaResistance.Tests/VivaLaResistance.Tests.csproj --no-restore --verbosity normal
 
   build-android:
-    name: Build Android (net9.0-android)
+    name: Build Android (net10.0-android)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 9
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -61,18 +61,18 @@ jobs:
         run: dotnet restore src/VivaLaResistance.slnx
 
       - name: Build Android
-        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj --no-restore -f net9.0-android -c Release
+        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj --no-restore -f net10.0-android -c Release
 
   build-ios:
-    name: Build iOS (net9.0-ios)
+    name: Build iOS (net10.0-ios)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 9
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -89,4 +89,4 @@ jobs:
         run: dotnet restore src/VivaLaResistance.slnx
 
       - name: Build iOS
-        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj --no-restore -f net9.0-ios -c Release /p:BuildIpa=false
+        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj --no-restore -f net10.0-ios -c Release /p:BuildIpa=false
