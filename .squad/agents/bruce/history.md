@@ -77,3 +77,30 @@ Phase 2 is a **fine-tune job (~1–1.5 weeks)**, not a download-and-integrate ta
 **Key files:**
 - Approved decision: `.squad/decisions.md`
 - Orchestration log: `.squad/orchestration-log/2026-02-25T22-40-05Z-bruce.md`
+
+### 2026-07-18: Colab Training Notebook Created
+
+**File:** `design/colab-training-notebook.ipynb`
+
+A complete, runnable Google Colab notebook for training YOLOv8n on the resistor dataset and exporting to ONNX. Committed directly to `main`.
+
+**Notebook sections:**
+1. Setup - `ultralytics` + `roboflow` install
+2. Dataset download - `isha-74mjj/yolov5-u3oks` via Roboflow API (free account + API key required)
+3. Training - YOLOv8n, 50 epochs, batch=16, T4 GPU (~25-40 min), early stopping patience=10
+4. Evaluation - `model.val()`, target mAP50 > 0.70 (rerun at 100 epochs if below 0.65)
+5. ONNX export - opset 17, `imgsz=640`, `simplify=True`, `dynamic=False` (fixed batch=1 for mobile)
+6. Validation - Netron.app inspection instructions + asset placement steps
+7. C# integration notes - full preprocessing + NMS + stub implementation guide
+
+**ONNX output shape:** `[1, 5, 8400]` - 5 values per box = `[cx, cy, w, h, conf]` (normalised [0,1])
+
+**Input preprocessing steps (BGRA8888 -> model input):**
+1. Resize to 640x640 with letterbox padding (grey 114,114,114)
+2. Reorder channels: BGRA -> RGB (drop alpha, swap B and R)
+3. Normalise: divide by 255.0 -> float32 in [0, 1]
+4. CHW planar layout: float32[3 x 640 x 640]
+
+**Post-inference NMS:** confidence threshold 0.25, IoU threshold 0.45
+
+**Asset placement:** rename exported file to `resistor-localization.onnx` -> `src/VivaLaResistance/Resources/Raw/` -> build action `MauiAsset`
