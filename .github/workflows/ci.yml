@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run xUnit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore src/VivaLaResistance.slnx
+
+      - name: Run tests
+        run: dotnet test src/VivaLaResistance.Tests/VivaLaResistance.Tests.csproj --no-restore --verbosity normal
+
+  build-android:
+    name: Build Android (net9.0-android)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Restore
+        run: dotnet restore src/VivaLaResistance.slnx
+
+      - name: Build Android
+        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj --no-restore -f net9.0-android -c Release
+
+  build-ios:
+    name: Build iOS (net9.0-ios)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui
+
+      - name: Restore
+        run: dotnet restore src/VivaLaResistance.slnx
+
+      - name: Build iOS
+        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj --no-restore -f net9.0-ios -c Release /p:BuildIpa=false

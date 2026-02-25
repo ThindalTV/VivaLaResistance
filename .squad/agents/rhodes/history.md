@@ -10,6 +10,24 @@
 
 ## Learnings
 
+### 2026-02-25: CI Pipeline Setup (Issue #1)
+
+**Created `.github/workflows/ci.yml`** with three jobs:
+
+- **test** (ubuntu-latest): Restores solution, runs xUnit tests against `VivaLaResistance.Tests` (net9.0 — no MAUI workload needed)
+- **build-android** (ubuntu-latest): Installs MAUI workload, builds `net9.0-android` target in Release config
+- **build-ios** (macos-latest): Installs MAUI workload, builds `net9.0-ios` target in Release config with `BuildIpa=false` to skip code signing requirement
+
+**Key decisions:**
+- iOS job must run on `macos-latest` (Apple toolchain requirement)
+- Android and test jobs run on `ubuntu-latest` (cheaper + sufficient)
+- NuGet cache keyed on `${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}` — OS-scoped to avoid cross-contamination
+- iOS build uses `/p:BuildIpa=false` so CI doesn't fail on missing provisioning profile
+- Tests target `net9.0` directly (no MAUI dependency), so test job is lean and fast
+- Existing `squad-*.yml` and `sync-squad-labels.yml` workflows untouched
+
+**README:** Added CI badge pointing at `ci.yml` workflow on ThindalTV/VivaLaResistance.
+
 ### 2026-02-25: Initial Solution Architecture Setup
 
 **Created full solution structure under `/src`:**
