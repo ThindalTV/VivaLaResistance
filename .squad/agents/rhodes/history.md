@@ -94,3 +94,27 @@ All 34 open issues are now labeled for easy filtering and navigation by team mem
 - #13: AR overlay layer (core UX feature)
 - #14: Responsive layout (Samsung Fold support critical)
 - #26: Integration testing plan (end-to-end validation)
+
+### 2025-07-18: Vision/ML Library Decision (Issue #5)
+
+**Reviewed and approved Bruce's vision-library-comparison.md document.**
+
+**Decision: Two-phase approach approved.**
+- **Phase 1:** SkiaSharp + custom HSV color analysis (classical CV, no ML model needed)
+- **Phase 2:** ONNX Runtime + lightweight ONNX model (YOLOv8-nano) for robust localization under varied lighting
+
+**Key architectural insights:**
+- Services project stays `net10.0` for Phase 1 — SkiaSharp supports plain .NET TFM
+- Phase 2 ONNX Runtime native lib resolution needs validation through MAUI head project before committing
+- Color classification should NEVER be ML-ified — HSV math is sufficient and more predictable
+- Camera frame format must be contractually defined (BGRA8888 recommended) before implementation
+- Phase 1 requires lighting UX guidance as mitigation for classical CV's lighting sensitivity
+
+**Rejected options and why:**
+- ML.NET: not mobile-capable
+- TFLite .NET: no official .NET 10 packages, community bindings stale
+- CoreML/ML Kit: platform-only, dual implementation doubles maintenance
+- Emgu CV: binary size (~70MB) unacceptable for mobile app
+
+**Key file:** `design/vision-library-comparison.md`
+**Decision file:** `.squad/decisions/inbox/rhodes-vision-library-decision.md`
