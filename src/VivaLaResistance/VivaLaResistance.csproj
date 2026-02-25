@@ -41,6 +41,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\VivaLaResistance.Core\VivaLaResistance.Core.csproj" />
     <ProjectReference Include="..\VivaLaResistance.Services\VivaLaResistance.Services.csproj" />
   </ItemGroup>
