@@ -106,9 +106,61 @@ All 34 open issues are now labeled for easy filtering and navigation by team mem
 - Multi-resistor simultaneous detection as core requirement (Issue #10)
 - Performance targets: <100ms inference, 10-15 FPS (Issues #27, #6)
 
+### 2026-02-25: GitHub Issue Categorization with Labels
+
+**Created and applied 6 new category labels to all 34 open issues** in thindaltv/VivaLaResistance.
+
+**Labels Created:**
+- `infrastructure` (#0075ca) — Build, CI, project setup, configuration (7 issues)
+- `vision` (#e4e669) — ML/computer vision, resistor detection, camera (10 issues)
+- `mobile` (#d73a4a) — MAUI, UI, platform-specific mobile concerns (10 issues)
+- `monetization` (#a2eeef) — Trial logic, modals, payment flows (3 issues)
+- `ux` (#cfd3d7) — Design, overlays, user experience (4 issues)
+- `testing` (#0e8a16) — Tests, quality, edge cases (4 issues)
+
+**Label Distribution Across 34 Issues:**
+- Infrastructure only: #1, #2, #3, #4, #20, #28, #29 (7 issues)
+- Infrastructure + Vision: #5 (1 issue)
+- Vision only: #6, #7, #8, #9, #10, #11, #19, #27, #31 (9 issues)
+- Mobile only: #12, #14, #16, #17, #32, #33, #34 (7 issues)
+- Mobile + Monetization: #15 (1 issue)
+- Mobile + UX: #13, #30 (2 issues)
+- Monetization only: #18 (1 issue)
+- UX only: #21 (1 issue)
+- UX + Monetization: #22 (1 issue)
+- Testing only: #23, #24, #25, #26 (4 issues)
+
+All 34 open issues are now labeled for easy filtering and navigation by team members.
+
+**Issue Breakdown by Area:**
+- Infrastructure/Architecture (Issues #1-5): CI pipeline, permissions, DI wiring, ML framework selection
+- ML/Vision (Issues #6-11): Camera capture, model selection, detection service, value calculation, multi-resistor support
+- UI/MAUI (Issues #12-17): Full-screen camera, AR overlays, responsive layout, support modal, Fold support, permission flow
+- Core/Services (Issues #18-20): TrialService, color band lookup, ResistorReading model
+- Design (Issues #21-22): Badge design spec, support modal design
+- Testing (Issues #23-26): Unit tests for calculator and trial services, integration test plan
+- Additional (Issues #27-34): Performance optimization, documentation, error handling, icons, memory management, accessibility, battery optimization, app store prep
+
+**Key Architectural Decisions Captured:**
+- ONNX Runtime vs TensorFlow Lite evaluation required (Issue #5)
+- On-device ML constraint emphasized across detection issues
+- Responsive layout breakpoints defined for phone/Fold/tablet (Issue #14)
+- 7-day trial + dismissible modal pattern formalized (Issues #15, #18)
+- Multi-resistor simultaneous detection as core requirement (Issue #10)
+- Performance targets: <100ms inference, 10-15 FPS (Issues #27, #6)
+
 **Major Epic Issues:**
 - #5: ML framework selection (Rhodes + Bruce collaboration required)
 - #8: ResistorDetectionService implementation (core ML pipeline)
 - #13: AR overlay layer (core UX feature)
 - #14: Responsive layout (Samsung Fold support critical)
 - #26: Integration testing plan (end-to-end validation)
+
+### 2026-02-25: PR #35 — CI Pipeline Review & Approval
+
+Reviewed GitHub Actions workflow submission from Rhodes (Issue #1):
+- `.github/workflows/ci.yml` with three jobs (test, build-android, build-ios)
+- All 5 acceptance criteria verified as met
+- Architecture sound: OS-specific runners, NuGet cache keyed per OS, iOS unsigned build appropriate
+- README badge added correctly
+- PR ready for merge
