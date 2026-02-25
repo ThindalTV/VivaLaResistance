@@ -80,7 +80,7 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Install iOS workload
-        run: dotnet workload install maui-ios
+        run: dotnet workload install maui-ios maui-android
 
       - name: Restore
         run: dotnet restore src/VivaLaResistance/VivaLaResistance.csproj
