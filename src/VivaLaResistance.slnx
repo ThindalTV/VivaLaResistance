@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="VivaLaResistance/VivaLaResistance.csproj" />
+  <Project Path="VivaLaResistance.Core/VivaLaResistance.Core.csproj" />
+  <Project Path="VivaLaResistance.Services/VivaLaResistance.Services.csproj" />
+  <Project Path="VivaLaResistance.Tests/VivaLaResistance.Tests.csproj" />
+</Solution>

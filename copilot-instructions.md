@@ -24,6 +24,8 @@ A C# .NET MAUI mobile app (iOS + Android only — no desktop) that uses computer
 - **Shuri** — Mobile Dev (UI, XAML, camera view, overlays, trial modal)
 - **Bruce** — Vision/ML Dev (detection pipeline, color band algorithm)
 - **Natasha** — Tester (unit tests, platform tests, quality)
+- **Tony** — DevOps / Infrastructure (CI/CD, deployments, app store releases, build systems)
+- **Diana** — Technical Writer (documentation, user guides, API docs, release notes)
 - **Scribe** — Session Logger (silent)
 - **Ralph** — Work Monitor
 - **@copilot** — that's you

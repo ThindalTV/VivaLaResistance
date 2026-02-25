@@ -8,6 +8,7 @@
 | MAUI UI, XAML layouts, navigation, platform handlers | Shuri | iOS & Android specifics |
 | Camera integration, ML model, resistor detection algorithm, color band logic | Bruce | Vision/ML domain owner |
 | Tests, edge cases, quality gates, CI test runs | Natasha | All test types |
+| UX design, interaction flows, overlay appearance, accessibility, monetization modal feel | Hope | Design specs; Shuri implements |
 | Session logging, decision merging, history updates | Scribe | Silent — never user-facing |
 | Work queue scanning, issue triage, PR monitoring | Ralph | Loop-driven monitor |
 | Well-defined implementation issues, test scaffolding, boilerplate | @copilot | See capability profile in team.md |

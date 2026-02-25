@@ -20,6 +20,7 @@
 | Shuri | Mobile Dev | claude-sonnet-4.5 | ⚛️ |
 | Bruce | Vision/ML Dev | claude-sonnet-4.5 | 🔧 |
 | Natasha | Tester | claude-sonnet-4.5 | 🧪 |
+| Hope | UX Designer | claude-opus-4.5 | 🎨 |
 | Scribe | Session Logger | claude-haiku-4.5 | 📋 |
 | Ralph | Work Monitor | — | 🔄 |
 | @copilot | Coding Agent | — | 🤖 |

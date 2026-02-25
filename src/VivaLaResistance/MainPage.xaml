@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:VivaLaResistance.ViewModels"
+             x:Class="VivaLaResistance.MainPage"
+             x:DataType="viewmodels:MainViewModel"
+             Title="Resistor Scanner">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Camera Preview Placeholder -->
+        <!-- TODO: Replace with actual camera view (e.g., CameraView from CommunityToolkit.Maui) -->
+        <Grid Grid.Row="0" 
+              BackgroundColor="#1a1a2e"
+              x:Name="CameraContainer">
+            
+            <!-- Placeholder content while camera is not implemented -->
+            <VerticalStackLayout 
+                VerticalOptions="Center" 
+                HorizontalOptions="Center"
+                Spacing="20"
+                IsVisible="{Binding IsCameraNotReady}">
+                
+                <Label 
+                    Text="📷"
+                    FontSize="64"
+                    HorizontalOptions="Center" />
+                
+                <Label 
+                    Text="Camera Preview"
+                    FontSize="24"
+                    TextColor="White"
+                    HorizontalOptions="Center" />
+                
+                <Label 
+                    Text="Point camera at a resistor to detect its value"
+                    FontSize="14"
+                    TextColor="#888888"
+                    HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <!-- AR Overlay Layer for detected resistors -->
+            <!-- This will contain dynamically positioned labels showing resistor values -->
+            <AbsoluteLayout x:Name="OverlayLayer" />
+
+        </Grid>
+
+        <!-- Bottom Status Bar -->
+        <Grid Grid.Row="1" 
+              BackgroundColor="#16213e" 
+              Padding="16">
+            
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Status Text -->
+            <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
+                <Label 
+                    Text="{Binding StatusText}"
+                    FontSize="16"
+                    TextColor="White" />
+                
+                <Label 
+                    Text="{Binding TrialStatusText}"
+                    FontSize="12"
+                    TextColor="#888888"
+                    IsVisible="{Binding ShowTrialStatus}" />
+            </VerticalStackLayout>
+
+            <!-- Detected Count -->
+            <Frame Grid.Column="1"
+                   BackgroundColor="#0f3460"
+                   CornerRadius="20"
+                   Padding="12,8"
+                   BorderColor="Transparent"
+                   IsVisible="{Binding HasDetections}">
+                
+                <Label 
+                    Text="{Binding DetectionCountText}"
+                    FontSize="14"
+                    TextColor="White" />
+            </Frame>
+
+        </Grid>
+
+    </Grid>
+
+</ContentPage>
