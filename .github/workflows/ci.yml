@@ -54,14 +54,8 @@ jobs:
       - name: Install Android workload
         run: dotnet workload install maui-android
 
-      - name: Restore
-        run: |
-          dotnet restore src/VivaLaResistance.Core/VivaLaResistance.Core.csproj
-          dotnet restore src/VivaLaResistance.Services/VivaLaResistance.Services.csproj
-          dotnet restore src/VivaLaResistance/VivaLaResistance.csproj -p:TargetFrameworks=net10.0-android
-
       - name: Build Android
-        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj --no-restore -f net10.0-android -c Release
+        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj -f net10.0-android -c Release
 
   build-ios:
     name: Build iOS (net10.0-ios)
@@ -85,11 +79,5 @@ jobs:
       - name: Install iOS workload
         run: dotnet workload install maui-ios
 
-      - name: Restore
-        run: |
-          dotnet restore src/VivaLaResistance.Core/VivaLaResistance.Core.csproj
-          dotnet restore src/VivaLaResistance.Services/VivaLaResistance.Services.csproj
-          dotnet restore src/VivaLaResistance/VivaLaResistance.csproj -p:TargetFrameworks=net10.0-ios
-
       - name: Build iOS
-        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj --no-restore -f net10.0-ios -c Release /p:BuildIpa=false
+        run: dotnet build src/VivaLaResistance/VivaLaResistance.csproj -f net10.0-ios -c Release /p:BuildIpa=false
