@@ -118,3 +118,37 @@ All 34 open issues are now labeled for easy filtering and navigation by team mem
 
 **Key file:** `design/vision-library-comparison.md`
 **Decision file:** `.squad/decisions/inbox/rhodes-vision-library-decision.md`
+
+### 2026-07-18: Revised Vision Pipeline — ONNX-First Hybrid (Supersedes Phase 1/Phase 2 Split)
+
+**Reviewed Bruce's ONNX model research and revised the architecture decision.**
+
+**Previous decision (2025-07-18):** Two-phase — Phase 1 SkiaSharp+HSV localization+color, Phase 2 ONNX localization.
+**New decision:** Single unified pipeline — ONNX (YOLOv8-nano) for localization + HSV for color classification from day one. Phases collapsed.
+
+**Why the change:**
+- Bruce found a 4,422-image labeled resistor dataset (isha-74mjj/yolov5-u3oks) on Roboflow
+- YOLOv8 → ONNX export is proven (one command), C# integration straightforward
+- Building a full classical CV localization pipeline would take comparable effort and be thrown away
+- Color classification stays HSV math — "never ML-ify color reading" ruling unchanged
+
+**Key rulings:**
+1. **Option B chosen:** ONNX localization + HSV color bands (hybrid). Not pure ONNX (Option A) — color classification stays deterministic. Not two-phase (Option C) — the data availability changes the calculus.
+2. **License gate is hard:** Bruce must verify isha-74mjj dataset license on Roboflow BEFORE any training. CC-BY 4.0 is acceptable with attribution.
+3. **Hope must spike ONNX Runtime native lib resolution** through MAUI head project before Bruce starts integration.
+4. **Camera frame format contract: BGRA8888** — formalized, was previously a condition.
+5. **640px default, 320px fallback** for ONNX input resolution based on real-device profiling.
+6. **Lighting UX still mandatory** — HSV is lighting-sensitive regardless of ONNX localization.
+7. **Binary size: ~17MB** from start (ONNX Runtime ~15MB + model ~6MB) vs. previous ~2MB Phase 1.
+8. **No interface changes needed** — IResistorDetectionService already accommodates model loading.
+
+**New dependencies (both required from start):**
+- `SkiaSharp` v3.* (color classification)
+- `Microsoft.ML.OnnxRuntime` v1.* (localization)
+
+**Risk flags:**
+- Dataset domain mismatch (benchtop vs. handheld) — mitigate with augmentation + 100-200 handheld photos
+- If ONNX underperforms, failure is graceful (no detection, not wrong detection)
+- If dataset license is incompatible, fallback is self-collected dataset (+1 week)
+
+**Decision file:** `.squad/decisions/inbox/rhodes-onnx-first-decision.md`
