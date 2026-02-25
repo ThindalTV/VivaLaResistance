@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\VivaLaResistance.Core\VivaLaResistance.Core.csproj" />
   </ItemGroup>
 
