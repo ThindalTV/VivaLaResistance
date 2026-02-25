@@ -34,3 +34,21 @@
 **Decision context:** Color classification stays as SkiaSharp/HSV math — ML-ifying color detection is overkill when HSV math works.
 
 **Key file:** `.squad/decisions/inbox/rhodes-vision-library-decision.md`
+
+### 2026-02-25: ONNX-First Hybrid Approved — Your Action Items
+
+**Rhodes approved Option B:** Collapse Phase 1/Phase 2 split into unified implementation starting day one. ONNX (YOLOv8-nano) for localization + HSV math for color bands.
+
+**Your immediate action items (parallel with Bruce + Hope):**
+1. **Camera frame pipeline:** Finalize BGRA8888 format contract with Bruce. Deliver byte[] in native BGRA8888 layout from camera platform code.
+2. **Lighting UX is NOW MANDATORY:** HSV color classification remains lighting-sensitive. Design + implement brightness indicator or "move to better light" prompt. This is not optional for MVP reliability.
+3. After Hope's ONNX native lib spike passes + Bruce's model is ready, integrate ONNX detection boxes into your AR overlay pipeline.
+
+**Why this matters:**
+- Camera frame format formalization is blocking Bruce's ONNX preprocessing (BGRA8888 → RGB float32 CHW tensor)
+- Lighting UX is critical for user success under real-world conditions — HSV reads color bands; bad lighting = wrong color classification = wrong resistance value
+- You can start frame capture work immediately (task 4 in sprint, parallelizable)
+
+**Key files:**
+- Approved decision: `.squad/decisions.md`
+- Orchestration log: `.squad/orchestration-log/2026-02-25T22-40-05Z-rhodes.md`

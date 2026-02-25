@@ -47,7 +47,7 @@
 3. Phase 2: validate ONNX Runtime native lib resolution through MAUI head before committing
 4. Phase 1 lighting UX mitigation mandatory — classical CV is lighting-sensitive
 
-### 2026-07-18: Revised Vision Pipeline — ONNX-First Hybrid (Supersedes Phase 1/Phase 2 Split)
+### 2026-02-25: Revised Vision Pipeline — ONNX-First Hybrid (Supersedes Phase 1/Phase 2 Split)
 **Decision:** Collapse two-phase plan into single unified pipeline — ONNX (YOLOv8-nano) for resistor body localization + HSV math for color band classification. Both from day one.
 **Rationale:** Bruce's research found a 4,422-image labeled dataset (isha-74mjj/yolov5-u3oks) and confirmed the YOLOv8→ONNX pipeline is clean. Building throwaway classical CV localization is waste when the ONNX path takes comparable effort. Color classification stays deterministic HSV — never ML-ify color reading.
 
@@ -66,4 +66,20 @@
 
 **Binary size:** ~17MB (ONNX Runtime ~15MB + model ~6MB) — accepted tradeoff for localization robustness
 **Interface changes:** None — IResistorDetectionService already accommodates this architecture
-**Decision file:** `.squad/decisions/inbox/rhodes-onnx-first-decision.md`
+
+**Sprint ordering (revised):**
+| Task | Owner | Blocker |
+|---|---|---|
+| Verify dataset license | Bruce | — |
+| ONNX native lib spike | Hope | — |
+| Train + export ONNX model | Bruce | License ✓ |
+| Camera frame pipeline (BGRA8888) | Shuri | — |
+| ONNX inference wrapper | Bruce | Spike ✓, Model ✓ |
+| HSV color classifier | Bruce | Frame format ✓ |
+| Compose full pipeline | Bruce | Wrapper + Classifier |
+| AR overlay rendering | Shuri | Pipeline |
+| Lighting UX guidance | Shuri | Frame format |
+
+**Decision files:**
+- `.squad/decisions/inbox/bruce-onnx-model-research.md` (research & recommendation)
+- `.squad/decisions/inbox/rhodes-onnx-first-decision.md` (architecture decision)
