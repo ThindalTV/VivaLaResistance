@@ -43,6 +43,8 @@ public static class MauiProgram
         services.AddSingleton<IResistorValueCalculatorService, ResistorValueCalculatorService>();
         services.AddSingleton<IResistorDetectionService, ResistorDetectionService>();
         services.AddSingleton<ITrialService, TrialService>();
+        // Rhodes gate: pending review before merge
+        services.AddSingleton<IResistorLocalizationService, OnnxResistorLocalizationService>();
 
         // Infrastructure services
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
