@@ -39,17 +39,33 @@
                        HorizontalTextAlignment="Center" />
 
                 <!-- Body -->
-                <Label Text="You've been using the app for a while — thanks for sticking around! If it's saved you time sorting resistors, a small donation keeps the project going. But either way, you're welcome to keep using it for free."
+                <Label Text="You've been using the app for a while — thanks for sticking around! Viva La Resistance is a one-person project. If it's saving you time, you can support it by picking up a copy on the store."
                        FontSize="14"
                        TextColor="#888888"
                        HorizontalOptions="Center"
                        HorizontalTextAlignment="Center"
                        LineBreakMode="WordWrap" />
 
-                <!-- Dismiss button -->
+                <!-- Support button (primary) -->
                 <Border BackgroundColor="#0f3460"
                         StrokeShape="RoundRectangle 12"
-                        Stroke="Transparent"
+                        Stroke="#e94560"
+                        StrokeThickness="1"
+                        Padding="16,12"
+                        HorizontalOptions="Fill">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSupportTapped" />
+                    </Border.GestureRecognizers>
+                    <Label Text="Support the project"
+                           FontSize="16"
+                           TextColor="White"
+                           HorizontalOptions="Center" />
+                </Border>
+
+                <!-- Dismiss button (secondary) -->
+                <Border BackgroundColor="Transparent"
+                        StrokeShape="RoundRectangle 12"
+                        Stroke="#444466"
                         Padding="16,12"
                         HorizontalOptions="Fill">
                     <Border.GestureRecognizers>
