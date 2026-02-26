@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using VivaLaResistance.Core.Interfaces;
 using VivaLaResistance.Services;
 using VivaLaResistance.ViewModels;
+using VivaLaResistance.Views;
 
 namespace VivaLaResistance;
 
@@ -66,6 +67,7 @@ public static class MauiProgram
     private static void RegisterPages(IServiceCollection services)
     {
         services.AddTransient<MainPage>();
+        services.AddTransient<SupportModalPage>();
     }
 }
 
