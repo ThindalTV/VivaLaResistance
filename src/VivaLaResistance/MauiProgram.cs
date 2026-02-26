@@ -45,10 +45,8 @@ public static class MauiProgram
         services.AddSingleton<ITrialService, TrialService>();
         // Rhodes gate: pending review before merge
         services.AddSingleton<IResistorLocalizationService, OnnxResistorLocalizationService>();
-
         // Lighting analysis
         services.AddSingleton<ILightingAnalyzer, SkiaSharpLightingAnalyzer>();
-
         // Infrastructure services
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddSingleton<IPreferencesWrapper, MauiPreferencesWrapper>();
