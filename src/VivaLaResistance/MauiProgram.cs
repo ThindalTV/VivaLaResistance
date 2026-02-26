@@ -47,6 +47,12 @@ public static class MauiProgram
         services.AddSingleton<IResistorLocalizationService, OnnxResistorLocalizationService>();
         // Lighting analysis
         services.AddSingleton<ILightingAnalyzer, SkiaSharpLightingAnalyzer>();
+        // Camera frame source — platform-specific implementation
+#if ANDROID
+        services.AddSingleton<IFrameSource, Platforms.Android.CameraFrameSource>();
+#elif IOS
+        services.AddSingleton<IFrameSource, Platforms.iOS.CameraFrameSource>();
+#endif
         // Infrastructure services
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddSingleton<IPreferencesWrapper, MauiPreferencesWrapper>();
