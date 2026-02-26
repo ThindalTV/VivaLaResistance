@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using VivaLaResistance.Core.Interfaces;
 using VivaLaResistance.Services;
 using VivaLaResistance.ViewModels;
+using VivaLaResistance.Views;
 
 namespace VivaLaResistance;
 
@@ -47,6 +48,12 @@ public static class MauiProgram
         services.AddSingleton<IResistorLocalizationService, OnnxResistorLocalizationService>();
         // Lighting analysis
         services.AddSingleton<ILightingAnalyzer, SkiaSharpLightingAnalyzer>();
+        // Camera frame source — platform-specific implementation
+#if ANDROID
+        services.AddSingleton<IFrameSource, Platforms.Android.CameraFrameSource>();
+#elif IOS
+        services.AddSingleton<IFrameSource, Platforms.iOS.CameraFrameSource>();
+#endif
         // Infrastructure services
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddSingleton<IPreferencesWrapper, MauiPreferencesWrapper>();
@@ -60,6 +67,7 @@ public static class MauiProgram
     private static void RegisterPages(IServiceCollection services)
     {
         services.AddTransient<MainPage>();
+        services.AddTransient<SupportModalPage>();
     }
 }
 
