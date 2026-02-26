@@ -1,6 +1,7 @@
 #nullable enable
 
 using AVFoundation;
+using CoreFoundation;
 using CoreMedia;
 using CoreVideo;
 using Foundation;
@@ -73,11 +74,11 @@ public sealed class CameraFrameSource : IFrameSource, IDisposable
             AlwaysDiscardsLateVideoFrames = true,
             WeakVideoSettings = NSDictionary.FromObjectAndKey(
                 NSNumber.FromUInt32((uint)CVPixelFormatType.CV32BGRA),
-                new NSString("PixelFormatType"))
+                CVPixelBuffer.PixelFormatTypeKey)
         };
 
         _delegate = new SampleBufferDelegate(OnSampleBuffer);
-        _videoOutput.SetSampleBufferDelegateQueue(_delegate, _captureQueue);
+        _videoOutput.SetSampleBufferDelegate(_delegate, _captureQueue);
 
         if (_session.CanAddOutput(_videoOutput))
             _session.AddOutput(_videoOutput);
