@@ -20,6 +20,7 @@ public class MainViewModel : INotifyPropertyChanged
     private string _trialStatusText = string.Empty;
     private bool _showTrialStatus;
     private bool _isCameraNotReady = true;
+    private bool _isPermissionDenied;
     private bool _hasDetections;
     private int _detectionCount;
 
@@ -75,8 +76,30 @@ public class MainViewModel : INotifyPropertyChanged
     public bool IsCameraNotReady
     {
         get => _isCameraNotReady;
-        set => SetProperty(ref _isCameraNotReady, value);
+        set
+        {
+            if (SetProperty(ref _isCameraNotReady, value))
+                OnPropertyChanged(nameof(IsCameraInitializing));
+        }
     }
+
+    /// <summary>
+    /// Indicates camera permission was denied by the user.
+    /// </summary>
+    public bool IsPermissionDenied
+    {
+        get => _isPermissionDenied;
+        set
+        {
+            if (SetProperty(ref _isPermissionDenied, value))
+                OnPropertyChanged(nameof(IsCameraInitializing));
+        }
+    }
+
+    /// <summary>
+    /// True when camera is not ready AND permission has not been denied — shows the loading/waiting state.
+    /// </summary>
+    public bool IsCameraInitializing => IsCameraNotReady && !IsPermissionDenied;
 
     /// <summary>
     /// Whether there are any current detections.

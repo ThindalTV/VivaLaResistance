@@ -12,18 +12,17 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Camera Preview Placeholder -->
-        <!-- TODO: Replace with actual camera view (e.g., CameraView from CommunityToolkit.Maui) -->
+        <!-- Full-screen camera surface: dark background; IFrameSource drives the actual frame feed in code-behind -->
         <Grid Grid.Row="0" 
               BackgroundColor="#1a1a2e"
               x:Name="CameraContainer">
-            
-            <!-- Placeholder content while camera is not implemented -->
+
+            <!-- Waiting / initializing state (camera not ready and permission not denied) -->
             <VerticalStackLayout 
                 VerticalOptions="Center" 
                 HorizontalOptions="Center"
                 Spacing="20"
-                IsVisible="{Binding IsCameraNotReady}">
+                IsVisible="{Binding IsCameraInitializing}">
                 
                 <Label 
                     Text="📷"
@@ -31,7 +30,7 @@
                     HorizontalOptions="Center" />
                 
                 <Label 
-                    Text="Camera Preview"
+                    Text="Starting Camera…"
                     FontSize="24"
                     TextColor="White"
                     HorizontalOptions="Center" />
@@ -43,8 +42,40 @@
                     HorizontalOptions="Center" />
             </VerticalStackLayout>
 
+            <!-- Permission denied state -->
+            <VerticalStackLayout 
+                VerticalOptions="Center" 
+                HorizontalOptions="Center"
+                Spacing="20"
+                IsVisible="{Binding IsPermissionDenied}">
+                
+                <Label 
+                    Text="🔒"
+                    FontSize="64"
+                    HorizontalOptions="Center" />
+                
+                <Label 
+                    Text="Camera Access Required"
+                    FontSize="24"
+                    TextColor="White"
+                    HorizontalOptions="Center" />
+                
+                <Label 
+                    Text="Grant camera permission to scan resistors."
+                    FontSize="14"
+                    TextColor="#888888"
+                    HorizontalOptions="Center" />
+                
+                <Button 
+                    Text="Open Settings"
+                    BackgroundColor="#0f3460"
+                    TextColor="White"
+                    CornerRadius="8"
+                    Clicked="OnOpenSettingsClicked" />
+            </VerticalStackLayout>
+
             <!-- AR Overlay Layer for detected resistors -->
-            <!-- This will contain dynamically positioned labels showing resistor values -->
+            <!-- Dynamically positioned labels showing resistor values -->
             <AbsoluteLayout x:Name="OverlayLayer" />
 
         </Grid>
