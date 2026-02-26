@@ -416,3 +416,10 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Squad team state files — local only, never committed to main
+.squad/
+.ai-team/
+.ai-team-templates/
+team-docs/
+docs/proposals/
