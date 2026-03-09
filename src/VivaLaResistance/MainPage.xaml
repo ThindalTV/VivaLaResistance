@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:VivaLaResistance.ViewModels"
@@ -9,44 +9,96 @@
              NavigationPage.HasNavigationBar="False">
 
     <!--
-        Full-screen stacked Grid — all children share the same cell (fill).
-        Z-order (bottom→top): camera surface → AR overlay → lighting → status HUD → permission overlay → error banner
+        Full-screen stacked Grid: all children share the same cell (fill).
+        Z-order (bottom to top): camera surface, AR overlay, lighting, status HUD, permission overlay, error banner
+
+        Responsive breakpoints (AdaptiveTrigger on each element, window width in dp):
+          SmallPhone   : default / < 360 dp : tighter padding, smaller fonts
+                         Covers Samsung Galaxy Fold FOLDED (~280 to 320 dp)
+          StandardPhone: 360 to 430 dp         : default layout
+          LargePhone   : > 430 dp           : expanded padding, larger fonts
+                         Covers Samsung Galaxy Fold UNFOLDED (~880 dp) and tablets
+
+        Samsung Galaxy Fold physical test checklist (hardware test out of scope: notes for QA):
+          FOLDED  (~300 dp wide):  HUD bar must not clip; status text truncates, badge fits.
+          UNFOLDED (~880 dp wide): camera preview fills the wider viewport edge-to-edge;
+                                   AR overlay badges move with the new coordinate space.
+          FOLD/UNFOLD transition:  Window.SizeChanged fires in App.xaml.cs, AdaptiveTrigger
+                                   states re-evaluate automatically; no manual layout needed.
+          ROTATION:                OnDisappearing + OnAppearing cycle restarts camera cleanly.
+                                   Confirm android:configChanges in AndroidManifest MainActivity
+                                   if rotation should NOT recreate the Activity on a Fold device.
     -->
     <Grid>
 
-        <!-- ── Layer 0: Camera preview surface ───────────────────────────────
+        <!-- Layer 0: Camera preview surface
              ContentView placeholder named CameraPreview.
              MainPage.xaml.cs attaches a platform native view here at runtime.
-             Background is deep-navy so the state overlays look correct
-             while the camera is initializing. -->
+             HorizontalOptions/VerticalOptions Fill ensures the preview covers
+             the full window on every form factor including the wider viewport
+             of a Galaxy Fold unfolded in landscape. -->
         <ContentView x:Name="CameraPreview"
                      BackgroundColor="#1a1a2e"
+                     HorizontalOptions="Fill"
+                     VerticalOptions="Fill"
                      SemanticProperties.Description="Live camera preview"
                      ZIndex="0" />
 
-        <!-- ── Layer 1: AR overlay (resistor value badges) ───────────────────
-             ResistorOverlayView renders confidence-gated badges via a
-             GraphicsView canvas.  Normalized BoundingBox coords are mapped
-             to pixel positions inside the drawable.
-             Hysteresis: appear at ≥ 0.65 confidence, disappear below 0.60. -->
-        <controls:ResistorOverlayView x:Name="OverlayLayer"
-                                      ResistorReadings="{Binding DetectedResistors}"
-                                      ZIndex="1"
-                                      InputTransparent="True" />
+        <!-- Layer 1: AR overlay (resistor value badges)
+             AbsoluteLayout lets MainPage code-behind position badge views
+             at the exact pixel coordinates reported by detection results.
+             Badge coordinates should be normalised (0..1) by the detection
+             service so they scale correctly on any window size / aspect ratio,
+             including fold/unfold transitions. -->
+        <AbsoluteLayout x:Name="OverlayLayer"
+                        IsVisible="{Binding HasDetections}"
+                        ZIndex="1"
+                        InputTransparent="True" />
 
-        <!-- ── Layer 2: Lighting quality indicator ───────────────────────────
+        <!-- Layer 2: Lighting quality indicator
              Anchored to the bottom; only visible when lighting is not Good. -->
         <controls:LightingIndicatorView x:Name="LightingIndicator"
                                         VerticalOptions="End"
                                         ZIndex="2"
                                         InputTransparent="True" />
 
-        <!-- ── Layer 3: Status / HUD bar ─────────────────────────────────────
-             Semi-transparent bar pinned to the bottom; always visible. -->
+        <!-- Layer 3: Status / HUD bar
+             Semi-transparent bar pinned to the bottom; always visible.
+             VSM AdaptiveTrigger reduces padding on small/folded phones
+             and expands it on large phones / unfolded Fold / tablets. -->
         <Grid VerticalOptions="End"
               BackgroundColor="#CC16213e"
-              Padding="16,12"
+              Padding="8,10"
               ZIndex="3">
+
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="WindowWidthStates">
+                    <!-- SmallPhone: < 360 dp (includes Galaxy Fold folded ~280 to 320 dp) -->
+                    <VisualState x:Name="SmallPhone">
+                        <VisualState.Setters>
+                            <Setter Property="Padding" Value="8,10" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <!-- StandardPhone: 360 to 430 dp -->
+                    <VisualState x:Name="StandardPhone">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="360" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Property="Padding" Value="16,12" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <!-- LargePhone / Fold unfolded / tablet: > 430 dp -->
+                    <VisualState x:Name="LargePhone">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="430" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Property="Padding" Value="20,14" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
 
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -55,61 +107,324 @@
 
             <VerticalStackLayout Grid.Column="0" VerticalOptions="Center" Spacing="2">
                 <Label Text="{Binding StatusText}"
-                       FontSize="15"
+                       FontSize="13"
                        TextColor="White"
-                       SemanticProperties.Description="{Binding StatusText}" />
+                       LineBreakMode="TailTruncation"
+                       SemanticProperties.Description="{Binding StatusText}">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="WindowWidthStates">
+                            <VisualState x:Name="SmallPhone">
+                                <VisualState.Setters>
+                                    <Setter Property="FontSize" Value="13" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="StandardPhone">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="360" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Property="FontSize" Value="15" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="LargePhone">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="430" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Property="FontSize" Value="16" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+                </Label>
                 <Label Text="{Binding TrialStatusText}"
-                       FontSize="11"
+                       FontSize="10"
                        TextColor="#aaaaaa"
-                       IsVisible="{Binding ShowTrialStatus}" />
+                       IsVisible="{Binding ShowTrialStatus}">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="WindowWidthStates">
+                            <VisualState x:Name="SmallPhone">
+                                <VisualState.Setters>
+                                    <Setter Property="FontSize" Value="10" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="StandardPhone">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="360" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Property="FontSize" Value="11" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="LargePhone">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="430" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Property="FontSize" Value="12" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+                </Label>
             </VerticalStackLayout>
 
             <Border Grid.Column="1"
                     BackgroundColor="#0f3460"
                     StrokeShape="RoundRectangle 20"
                     Stroke="Transparent"
-                    Padding="12,6"
+                    Padding="8,4"
                     IsVisible="{Binding HasDetections}"
                     SemanticProperties.Description="{Binding DetectionCountText}">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="WindowWidthStates">
+                        <VisualState x:Name="SmallPhone">
+                            <VisualState.Setters>
+                                <Setter Property="Padding" Value="8,4" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="StandardPhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="360" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="Padding" Value="12,6" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="LargePhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="430" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="Padding" Value="14,8" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
                 <Label Text="{Binding DetectionCountText}"
-                       FontSize="13"
-                       TextColor="White" />
+                       FontSize="11"
+                       TextColor="White">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="WindowWidthStates">
+                            <VisualState x:Name="SmallPhone">
+                                <VisualState.Setters>
+                                    <Setter Property="FontSize" Value="11" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="StandardPhone">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="360" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Property="FontSize" Value="13" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="LargePhone">
+                                <VisualState.StateTriggers>
+                                    <AdaptiveTrigger MinWindowWidth="430" />
+                                </VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Property="FontSize" Value="15" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+                </Label>
             </Border>
         </Grid>
 
-        <!-- ── Layer 4: Camera initializing overlay ──────────────────────────
-             Shown while awaiting permission + IFrameSource.StartAsync. -->
+        <!-- Layer 4: Camera initializing overlay
+             Shown while awaiting permission + IFrameSource.StartAsync.
+             Spacing and icon size scale down for small/folded phones. -->
         <VerticalStackLayout VerticalOptions="Center"
                              HorizontalOptions="Center"
-                             Spacing="20"
+                             Spacing="12"
                              IsVisible="{Binding IsCameraInitializing}"
                              ZIndex="4"
                              SemanticProperties.Description="Camera is starting">
-            <Label Text="📷"
-                   FontSize="64"
-                   HorizontalOptions="Center" />
-            <Label Text="Starting Camera…"
-                   FontSize="22"
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="WindowWidthStates">
+                    <VisualState x:Name="SmallPhone">
+                        <VisualState.Setters>
+                            <Setter Property="Spacing" Value="12" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="StandardPhone">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="360" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Property="Spacing" Value="20" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="LargePhone">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="430" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Property="Spacing" Value="24" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+            <Label Text="&#x1F4F7;"
+                   FontSize="48"
+                   HorizontalOptions="Center">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="WindowWidthStates">
+                        <VisualState x:Name="SmallPhone">
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="48" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="StandardPhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="360" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="64" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="LargePhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="430" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="72" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+            </Label>
+            <Label Text="Starting Camera..."
+                   FontSize="18"
                    TextColor="White"
-                   HorizontalOptions="Center" />
+                   HorizontalOptions="Center">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="WindowWidthStates">
+                        <VisualState x:Name="SmallPhone">
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="18" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="StandardPhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="360" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="22" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="LargePhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="430" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="24" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+            </Label>
         </VerticalStackLayout>
 
-        <!-- ── Layer 4b: Permission-denied overlay ───────────────────────────
-             Shown when the user explicitly denied camera access. -->
+        <!-- Layer 4b: Permission-denied overlay
+             Shown when the user explicitly denied camera access.
+             Spacing and icon size scale down for small/folded phones. -->
         <VerticalStackLayout VerticalOptions="Center"
                              HorizontalOptions="Center"
-                             Spacing="16"
-                             Padding="32,0"
+                             Spacing="12"
+                             Padding="24,0"
                              IsVisible="{Binding IsPermissionDenied}"
                              ZIndex="4"
                              SemanticProperties.Description="Camera permission required">
-            <Label Text="🔒"
-                   FontSize="64"
-                   HorizontalOptions="Center" />
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="WindowWidthStates">
+                    <VisualState x:Name="SmallPhone">
+                        <VisualState.Setters>
+                            <Setter Property="Spacing" Value="12" />
+                            <Setter Property="Padding" Value="24,0" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="StandardPhone">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="360" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Property="Spacing" Value="16" />
+                            <Setter Property="Padding" Value="32,0" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="LargePhone">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="430" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Property="Spacing" Value="20" />
+                            <Setter Property="Padding" Value="40,0" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+            <Label Text="&#x1F512;"
+                   FontSize="48"
+                   HorizontalOptions="Center">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="WindowWidthStates">
+                        <VisualState x:Name="SmallPhone">
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="48" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="StandardPhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="360" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="64" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="LargePhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="430" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="72" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+            </Label>
             <Label Text="Camera Access Required"
-                   FontSize="22"
+                   FontSize="18"
                    TextColor="White"
-                   HorizontalOptions="Center" />
+                   HorizontalOptions="Center">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="WindowWidthStates">
+                        <VisualState x:Name="SmallPhone">
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="18" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="StandardPhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="360" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="22" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="LargePhone">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="430" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Property="FontSize" Value="24" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+            </Label>
             <Label Text="This app needs your camera to detect resistor values."
                    FontSize="14"
                    TextColor="#aaaaaa"
@@ -124,7 +439,7 @@
                     SemanticProperties.Hint="Opens device settings to grant camera permission" />
         </VerticalStackLayout>
 
-        <!-- ── Layer 5: Camera error banner ──────────────────────────────────
+        <!-- Layer 5: Camera error banner
              Slide-in banner at the top for structured camera errors. -->
         <Border VerticalOptions="Start"
                 BackgroundColor="#CC8B0000"
@@ -139,7 +454,7 @@
                        FontSize="13"
                        VerticalOptions="Center" />
                 <Button Grid.Column="1"
-                        Text="✕"
+                        Text="X"
                         BackgroundColor="Transparent"
                         TextColor="White"
                         FontSize="16"
