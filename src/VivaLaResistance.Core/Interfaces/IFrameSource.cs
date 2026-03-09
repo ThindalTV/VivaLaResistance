@@ -24,5 +24,10 @@ public interface IFrameSource
     /// </summary>
     event EventHandler<CameraFrame>? FrameAvailable;
 
+    /// <summary>
+    /// Raised when a camera error occurs (permission denied, device unavailable, or capture failure).
+    /// </summary>
+    event EventHandler<Exception>? ErrorOccurred;
+
     bool IsRunning { get; }
 }
