@@ -6,7 +6,7 @@
              Shell.NavBarIsVisible="False">
 
     <!-- Full-screen semi-transparent overlay; tap outside card to dismiss -->
-    <Grid>
+    <Grid SemanticProperties.Description="Support modal overlay">
         <Grid.GestureRecognizers>
             <TapGestureRecognizer Tapped="OnBackgroundTapped" />
         </Grid.GestureRecognizers>
@@ -28,7 +28,8 @@
                 <!-- Icon -->
                 <Label Text="⚡"
                        FontSize="52"
-                       HorizontalOptions="Center" />
+                       HorizontalOptions="Center"
+                       SemanticProperties.Description="Lightning bolt icon" />
 
                 <!-- Headline -->
                 <Label Text="Enjoying Viva La Resistance?"
@@ -36,7 +37,8 @@
                        FontAttributes="Bold"
                        TextColor="White"
                        HorizontalOptions="Center"
-                       HorizontalTextAlignment="Center" />
+                       HorizontalTextAlignment="Center"
+                       SemanticProperties.HeadingLevel="Level1" />
 
                 <!-- Body -->
                 <Label Text="You've been using the app for a while — thanks for sticking around! Viva La Resistance is a one-person project. If it's saving you time, you can support it by picking up a copy on the store."
@@ -44,7 +46,8 @@
                        TextColor="#888888"
                        HorizontalOptions="Center"
                        HorizontalTextAlignment="Center"
-                       LineBreakMode="WordWrap" />
+                       LineBreakMode="WordWrap"
+                       SemanticProperties.Description="Support message" />
 
                 <!-- Dismiss button -->
                 <Border BackgroundColor="#0f3460"
@@ -58,7 +61,8 @@
                     <Label Text="Thanks, maybe later"
                            FontSize="16"
                            TextColor="White"
-                           HorizontalOptions="Center" />
+                           HorizontalOptions="Center"
+                           SemanticProperties.Hint="Dismisses the support request and continues using the app" />
                 </Border>
 
             </VerticalStackLayout>
