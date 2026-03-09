@@ -15,6 +15,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly IResistorDetectionService _detectionService;
     private readonly IResistorValueCalculatorService _calculatorService;
     private readonly ITrialService _trialService;
+    private readonly IFrameSource _frameSource;
 
     private string _statusText = "Initializing...";
     private string _trialStatusText = string.Empty;
@@ -27,11 +28,13 @@ public class MainViewModel : INotifyPropertyChanged
     public MainViewModel(
         IResistorDetectionService detectionService,
         IResistorValueCalculatorService calculatorService,
-        ITrialService trialService)
+        ITrialService trialService,
+        IFrameSource frameSource)
     {
         _detectionService = detectionService ?? throw new ArgumentNullException(nameof(detectionService));
         _calculatorService = calculatorService ?? throw new ArgumentNullException(nameof(calculatorService));
         _trialService = trialService ?? throw new ArgumentNullException(nameof(trialService));
+        _frameSource = frameSource ?? throw new ArgumentNullException(nameof(frameSource));
 
         DetectedResistors = new ObservableCollection<ResistorReading>();
     }
@@ -169,6 +172,34 @@ public class MainViewModel : INotifyPropertyChanged
         {
             StatusText = $"Error: {ex.Message}";
         }
+
+        // Start camera feed if not already running
+        if (!_frameSource.IsRunning)
+        {
+            _frameSource.FrameAvailable += OnFrameAvailable;
+            _frameSource.ErrorOccurred += OnCameraError;
+
+            try
+            {
+                await _frameSource.StartAsync();
+                IsCameraNotReady = false;
+            }
+            catch (Exception ex)
+            {
+                if (ex.GetType().Name.Contains("Permission", StringComparison.OrdinalIgnoreCase))
+                {
+                    IsPermissionDenied = true;
+                    StatusText = "Camera permission required";
+                }
+                else
+                {
+                    StatusText = $"Camera error: {ex.Message}";
+                }
+
+                _frameSource.FrameAvailable -= OnFrameAvailable;
+                _frameSource.ErrorOccurred -= OnCameraError;
+            }
+        }
     }
 
     /// <summary>
@@ -176,6 +207,14 @@ public class MainViewModel : INotifyPropertyChanged
     /// </summary>
     public void Cleanup()
     {
+        _frameSource.FrameAvailable -= OnFrameAvailable;
+        _frameSource.ErrorOccurred -= OnCameraError;
+
+        if (_frameSource.IsRunning)
+        {
+            _ = _frameSource.StopAsync();
+        }
+
         DetectedResistors.Clear();
         DetectionCount = 0;
     }
@@ -223,6 +262,27 @@ public class MainViewModel : INotifyPropertyChanged
         {
             StatusText = $"Detection error: {ex.Message}";
         }
+    }
+
+    private void OnFrameAvailable(object? sender, CameraFrame frame)
+    {
+        _ = ProcessFrameAsync(frame.Data, frame.Width, frame.Height);
+    }
+
+    private void OnCameraError(object? sender, Exception ex)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (ex.GetType().Name.Contains("Permission", StringComparison.OrdinalIgnoreCase))
+            {
+                IsPermissionDenied = true;
+                StatusText = "Camera permission required";
+            }
+            else
+            {
+                StatusText = $"Camera error: {ex.Message}";
+            }
+        });
     }
 
     #endregion

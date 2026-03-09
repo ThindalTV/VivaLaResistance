@@ -33,4 +33,16 @@ public interface IResistorDetectionService
     /// Indicates whether the detection service is ready to process frames.
     /// </summary>
     bool IsInitialized { get; }
+
+    /// <summary>
+    /// Pauses ML inference. Frames received while paused are dropped immediately.
+    /// Safe to call from any thread.
+    /// </summary>
+    void Pause();
+
+    /// <summary>
+    /// Resumes ML inference after a previous <see cref="Pause"/> call.
+    /// Safe to call from any thread.
+    /// </summary>
+    void Resume();
 }
