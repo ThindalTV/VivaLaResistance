@@ -1,7 +1,0 @@
-{
-  "version": "1.0",
-  "universe_allowlist": ["marvel-cinematic-universe"],
-  "max_agents": 20,
-  "overflow_strategy": "diegetic_expansion",
-  "exempt": ["Scribe", "Ralph", "@copilot"]
-}

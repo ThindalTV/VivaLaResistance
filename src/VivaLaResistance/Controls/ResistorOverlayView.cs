@@ -61,6 +61,31 @@ public sealed class ResistorOverlayView : ContentView
         Content = _graphicsView;
     }
 
+    // ── MAUI handler lifecycle — subscribe/unsubscribe safely ─────────────────
+
+    /// <summary>
+    /// Subscribe to <see cref="CollectionChanged"/> when the view attaches to
+    /// a handler (enters the visual tree), and unsubscribe when it detaches, to
+    /// prevent memory leaks.
+    /// </summary>
+    protected override void OnHandlerChanged()
+    {
+        base.OnHandlerChanged();
+
+        if (Handler is not null)
+        {
+            // Attaching — subscribe if a collection is already bound.
+            if (ResistorReadings is { } col)
+                col.CollectionChanged += OnCollectionChanged;
+        }
+        else
+        {
+            // Detaching — always unsubscribe to avoid a dangling reference.
+            if (ResistorReadings is { } col)
+                col.CollectionChanged -= OnCollectionChanged;
+        }
+    }
+
     // ── Binding change handler ────────────────────────────────────────────────
 
     private static void OnReadingsPropertyChanged(
