@@ -221,6 +221,37 @@ Phase 2 is a **fine-tune job (~1–1.5 weeks)**, not a download-and-integrate ta
 
 **Key files:** `.squad/decisions/inbox/bruce-vision-issues.md` (detailed session report)
 
+### 2026-DATE: Issues #27 and #31 — IDisposable + Frame-Skip Throttle
+
+**Branch:** `squad/8-resistor-detection-service` → PR #46 (updated)
+
+**Outcomes:**
+
+**✅ Issue #27 — Frame-skip throttle (performance)**
+- Added `SemaphoreSlim(1, 1)` field `_inferenceSemaphore` to `ResistorDetectionService`
+- In `DetectResistorsAsync`: `Wait(0)` non-blocking gate — drops frame immediately if inference already running
+- Semaphore released in `finally` block (always)
+- Strategy: prefer freshness over completeness — dropping stale frames is better than queuing them
+- XML doc explains the rationale on the class summary
+
+**✅ Issue #31 — IDisposable (memory management)**
+- `ResistorDetectionService` implements `IDisposable`:
+  - Disposes `_inferenceSemaphore`
+  - Disposes `_localizationService` if it implements `IDisposable` (cast check)
+  - `bool _disposed` guard; standard `Dispose(bool)` virtual pattern
+- `OnnxResistorLocalizationService` implements `IDisposable`:
+  - Disposes `InferenceSession?` via `_session?.Dispose(); _session = null`
+  - `bool _disposed` guard; standard `Dispose(bool)` virtual pattern
+
+**Tests:** 114 passing (up from 111), 1 skipped (color bands — pending ONNX model)
+- IDisposable tests activated (were Skip="Pending implementation")
+- Frame-skip test replaced placeholder with real `TaskCompletionSource` concurrency gate test
+- Issues #27 and #31 closed on GitHub with PR #46 reference
+
+**Key technical note:**
+- `Dispose` on `ResistorDetectionService` only disposes `_localizationService` if caller injected an `OnnxResistorLocalizationService` (or any `IDisposable`). Mock services in tests are not disposable, so tests are unaffected.
+- The `SemaphoreSlim` is disposed before the downstream service, ensuring no release-after-dispose edge case.
+
 ### 2026-03-09: ResistorDetectionService Implementation — Sprint Complete
 
 **Completed:** ResistorDetectionService interface definition (#7), Color band calculation (#9, #19), Service implementation (#8, #10, #11)  
