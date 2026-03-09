@@ -220,3 +220,60 @@ Phase 2 is a **fine-tune job (~1–1.5 weeks)**, not a download-and-integrate ta
 - `src/VivaLaResistance.Services/ResistorDetectionService.cs` (full implementation)
 
 **Key files:** `.squad/decisions/inbox/bruce-vision-issues.md` (detailed session report)
+
+### 2026-03-09: ResistorDetectionService Implementation — Sprint Complete
+
+**Completed:** ResistorDetectionService interface definition (#7), Color band calculation (#9, #19), Service implementation (#8, #10, #11)  
+**PR:** Blocked by git issue (code complete, awaiting merge)
+
+**Implementation Details:**
+
+**Color Band Calculation (#9, #19):**
+- All 10 digit colors implemented: Black=0 through White=9
+- All multiplier values: Gold=0.1Ω, Silver=0.01Ω, Brown=10Ω through White=1GΩ
+- All tolerance values: Gold=±5%, Silver=±10%, Brown=±1%, Red=±2%, etc., None=±20%
+- Support for 4-band, 5-band, and 6-band resistor calculations
+- Edge case handling: single band throws ArgumentException
+
+**Service Integration (#8, #10, #11):**
+- ResistorDetectionService integrates with OnnxResistorLocalizationService
+- Confidence filtering: threshold 0.65, hysteresis 0.60 (reduces flicker)
+- Graceful degradation: invalid image data or inference failures return empty (no crashes)
+- Multiple detection support: each bounding box gets independent ResistorReading
+- Error handling: catches localization service exceptions, logs warnings
+
+**Test Coverage (Natasha):**
+- 15 new test cases cover all color calculations, service integration, error handling
+- Total: 111 passing tests, 4 skipped (awaiting #27, #31 implementations)
+- Test patterns documented: mocking, graceful degradation validation, skip markers
+
+**Open Issues:**
+- **#27**: Frame-skip optimization (SemaphoreSlim-based) — design documented, implementation pending
+  - When detection is in progress, new frames should return immediately (not queue)
+  - Affects: Performance under heavy frame rates
+  
+- **#31**: IDisposable pattern and memory cleanup
+  - Both ResistorDetectionService and OnnxResistorLocalizationService
+  - Services hold unmanaged ONNX InferenceSession resources
+  - Affects: Long-running sessions (resource leak prevention)
+
+**Recommendations (from Natasha):**
+1. Implement IDisposable — add Dispose() methods to clean up ONNX resources
+2. Implement frame skip — use `SemaphoreSlim(1,1)` with `TryWait(0)` to skip frames when detection is busy
+3. Color band extraction — once HSV extraction is fully implemented, un-skip tests that validate multiple resistors per frame and confidence hysteresis in real scenarios
+
+**Mobile Integration Ready:**
+- Shuri (Mobile) unblocked pending PR merge
+- Frame contract finalized: BGRA8888 format, `DetectResistorsAsync(byte[], int, int)` interface
+- Lighting analyzer (Shuri) ready for signal integration
+
+**Team Impact:**
+- Vision pipeline complete; blocked on PR merge by git issue
+- All color calculations validated by comprehensive test suite
+- Cross-team communication established with Shuri on frame format contract
+- Natasha's tests block until #27 and #31 are implemented
+
+**References:**
+- `.squad/orchestration-log/2026-03-09T16-53-52Z-bruce.md`
+- PR #46: ResistorDetectionServiceTests.cs (Natasha)
+- `.squad/decisions.md` — Test Coverage decision (2026-03-09)

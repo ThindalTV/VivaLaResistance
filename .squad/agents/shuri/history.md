@@ -153,3 +153,36 @@
 - Follow-up work for Shuri listed in error handling decision
 
 **References:** Rhodes PR #45, issue #29, `.squad/orchestration-log/2026-03-09T13-38-25Z-rhodes-sonnet-2.md`
+
+### 2026-03-09: Camera Permission Flow & Accessibility — Sprint Complete
+
+**Completed:** #17 (camera permission flow), #32 (accessibility)  
+**PR:** #47 (Mobile UI framework — ready for review)
+
+**Camera Permission Flow (#17):**
+- Implemented two-state UI model: `IsCameraInitializing` + `IsPermissionDenied`
+- Clear visual feedback for each permission state
+- Settings integration via `AppInfo.ShowSettingsUI()`
+- Permission recheck on `OnAppearing` for app resume handling
+
+**Accessibility Implementation (#32):**
+- All MainPage UI elements tagged with `SemanticProperties`
+- Dynamic binding for status text and labels
+- SupportModalPage accessibility complete
+- VoiceOver/TalkBack considerations documented in code comments
+
+**Team Impact:**
+- Vision pipeline (Bruce) integrated; awaiting PR merge to unblock
+- Mobile UI framework ready; blocked on camera view implementation (#12)
+- 5 dependent issues ready once full-screen camera view completes (#13, #14, #16, #33)
+
+**Open Issues:**
+- #12: Full-screen camera view (blocker for #13, #14, #16, #33)
+- Waiting on ResistorDetectionService PR merge from Bruce for integration
+
+**Decision Documentation:**
+- Camera permission flow pattern documented in `.squad/decisions.md`
+- Accessibility baseline with SemanticProperties documented
+- Pattern templates available for future permission requests
+
+**References:** `.squad/orchestration-log/2026-03-09T16-53-52Z-shuri.md`, PR #47
