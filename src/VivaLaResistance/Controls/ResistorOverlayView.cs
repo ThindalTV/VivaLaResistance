@@ -64,26 +64,16 @@ public sealed class ResistorOverlayView : ContentView
     // ── MAUI handler lifecycle — subscribe/unsubscribe safely ─────────────────
 
     /// <summary>
-    /// Subscribe to <see cref="CollectionChanged"/> when the view attaches to
-    /// a handler (enters the visual tree), and unsubscribe when it detaches, to
-    /// prevent memory leaks.
+    /// Re-drives subscription through <see cref="UpdateCollectionSubscription"/>
+    /// when the view attaches to or detaches from the visual tree, ensuring
+    /// exactly one subscription is active while attached and none while detached.
     /// </summary>
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
-
-        if (Handler is not null)
-        {
-            // Attaching — subscribe if a collection is already bound.
-            if (ResistorReadings is { } col)
-                col.CollectionChanged += OnCollectionChanged;
-        }
-        else
-        {
-            // Detaching — always unsubscribe to avoid a dangling reference.
-            if (ResistorReadings is { } col)
-                col.CollectionChanged -= OnCollectionChanged;
-        }
+        UpdateCollectionSubscription(
+            oldCollection: Handler == null ? ResistorReadings as INotifyCollectionChanged : null,
+            newCollection: Handler != null ? ResistorReadings as INotifyCollectionChanged : null);
     }
 
     // ── Binding change handler ────────────────────────────────────────────────
@@ -93,24 +83,37 @@ public sealed class ResistorOverlayView : ContentView
     {
         var view = (ResistorOverlayView)bindable;
 
-        if (oldValue is ObservableCollection<ResistorReading> old)
-            old.CollectionChanged -= view.OnCollectionChanged;
+        // Only subscribe to the new collection when attached; OnHandlerChanged
+        // will subscribe once the view enters the visual tree.
+        view.UpdateCollectionSubscription(
+            oldCollection: oldValue as INotifyCollectionChanged,
+            newCollection: view.Handler != null ? newValue as INotifyCollectionChanged : null);
 
         if (newValue is ObservableCollection<ResistorReading> fresh)
-        {
-            fresh.CollectionChanged += view.OnCollectionChanged;
             view.Refresh(fresh);
-        }
         else
-        {
             view.Refresh(Enumerable.Empty<ResistorReading>());
-        }
     }
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (sender is ObservableCollection<ResistorReading> collection)
             Refresh(collection);
+    }
+
+    /// <summary>
+    /// Central subscription manager — the single code path for all
+    /// <see cref="INotifyCollectionChanged.CollectionChanged"/> subscribe/
+    /// unsubscribe operations, guaranteeing at most one active subscription.
+    /// </summary>
+    private void UpdateCollectionSubscription(
+        INotifyCollectionChanged? oldCollection,
+        INotifyCollectionChanged? newCollection)
+    {
+        if (oldCollection != null)
+            oldCollection.CollectionChanged -= OnCollectionChanged;
+        if (newCollection != null)
+            newCollection.CollectionChanged += OnCollectionChanged;
     }
 
     // ── Rendering ─────────────────────────────────────────────────────────────
