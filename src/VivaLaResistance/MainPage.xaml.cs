@@ -80,4 +80,10 @@ public partial class MainPage : ContentPage
     {
         AppInfo.ShowSettingsUI();
     }
+
+    private void OnDismissErrorClicked(object? sender, EventArgs e)
+    {
+        if (BindingContext is MainViewModel vm)
+            vm.ClearCameraError();
+    }
 }
