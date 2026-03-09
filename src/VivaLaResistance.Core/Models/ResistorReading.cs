@@ -14,7 +14,7 @@ namespace VivaLaResistance.Core.Models;
 /// <param name="Confidence">Detection confidence score (0.0 to 1.0).</param>
 /// <param name="Timestamp">Timestamp when this reading was captured.</param>
 public record ResistorReading(
-    Guid Id,
+    string Id,
     double ValueInOhms,
     string FormattedValue,
     double TolerancePercent,

@@ -31,8 +31,8 @@ internal sealed class ResistorOverlayDrawable : IDrawable
 
     // Visible badges keyed by ResistorReading.Id (Guid).
     // Separate sets track which IDs are "active" for hysteresis logic.
-    private readonly Dictionary<Guid, ResistorReading> _visibleBadges = new();
-    private readonly HashSet<Guid> _activeIds = new();
+    private readonly Dictionary<string, ResistorReading> _visibleBadges = new();
+    private readonly HashSet<string> _activeIds = new();
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ internal sealed class ResistorOverlayDrawable : IDrawable
         var incoming = newReadings.ToDictionary(r => r.Id);
 
         // Update or evict existing badges
-        var toEvict = new List<Guid>();
+        var toEvict = new List<string>();
         foreach (var id in _activeIds)
         {
             if (incoming.TryGetValue(id, out var updated))

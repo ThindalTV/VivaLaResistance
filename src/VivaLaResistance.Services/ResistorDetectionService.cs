@@ -37,7 +37,7 @@ public class ResistorDetectionService : IResistorDetectionService, IDisposable
     private readonly ILogger<ResistorDetectionService> _logger;
 
     // Track previous frame's detections for hysteresis (reduce flicker)
-    private readonly Dictionary<Guid, ResistorReading> _previousDetections = new();
+    private readonly Dictionary<string, ResistorReading> _previousDetections = new();
 
     // Non-blocking semaphore for frame-skip throttle: only one inference at a time.
     // If Wait(0) returns false the incoming frame is dropped (never queued).
@@ -152,8 +152,14 @@ public class ResistorDetectionService : IResistorDetectionService, IDisposable
                     var formattedValue = _calculatorService.FormatResistance(resistanceValue);
                     var tolerance = _calculatorService.GetTolerancePercent(colorBands[^1]);
 
+                    // Stable ID: quantize bbox centre to a 10-unit grid in 0-1000 virtual coordinate space.
+                    // Same physical resistor -> same key across frames -> hysteresis dictionary works.
+                    int centerX = (int)(Math.Round((box.X + box.Width  / 2f) * 1000f / 10f) * 10);
+                    int centerY = (int)(Math.Round((box.Y + box.Height / 2f) * 1000f / 10f) * 10);
+                    string stableId = $"det_{centerX}_{centerY}";
+
                     var reading = new ResistorReading(
-                        Id: Guid.NewGuid(),
+                        Id: stableId,
                         ValueInOhms: resistanceValue,
                         FormattedValue: formattedValue,
                         TolerancePercent: tolerance,
