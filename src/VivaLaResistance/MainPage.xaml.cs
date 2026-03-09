@@ -1,4 +1,5 @@
 using VivaLaResistance.ViewModels;
+using VivaLaResistance.Views;
 
 namespace VivaLaResistance;
 
@@ -20,6 +21,11 @@ public partial class MainPage : ContentPage
         if (BindingContext is MainViewModel vm)
         {
             await vm.InitializeAsync();
+
+            if (vm.ShouldShowSupportModal)
+            {
+                await Navigation.PushModalAsync(new SupportModalPage(), animated: true);
+            }
         }
     }
 

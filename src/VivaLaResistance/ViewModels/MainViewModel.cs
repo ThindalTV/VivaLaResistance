@@ -22,6 +22,7 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _isCameraNotReady = true;
     private bool _hasDetections;
     private int _detectionCount;
+    private bool _isPermissionDenied;
 
     public MainViewModel(
         IResistorDetectionService detectionService,
@@ -77,6 +78,32 @@ public class MainViewModel : INotifyPropertyChanged
         get => _isCameraNotReady;
         set => SetProperty(ref _isCameraNotReady, value);
     }
+
+    /// <summary>
+    /// Whether the trial has expired and the support modal should be shown.
+    /// Delegates to <see cref="ITrialService.ShouldShowSupportModal"/>.
+    /// </summary>
+    public bool ShouldShowSupportModal => _trialService.ShouldShowSupportModal();
+
+    /// <summary>
+    /// Whether the user denied camera permission.
+    /// </summary>
+    public bool IsPermissionDenied
+    {
+        get => _isPermissionDenied;
+        set
+        {
+            if (SetProperty(ref _isPermissionDenied, value))
+            {
+                OnPropertyChanged(nameof(IsCameraInitializing));
+            }
+        }
+    }
+
+    /// <summary>
+    /// True while waiting for permission + IFrameSource to start (not denied, not ready).
+    /// </summary>
+    public bool IsCameraInitializing => IsCameraNotReady && !IsPermissionDenied;
 
     /// <summary>
     /// Whether there are any current detections.

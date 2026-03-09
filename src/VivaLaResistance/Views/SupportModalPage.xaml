@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="VivaLaResistance.Views.SupportModalPage"
+             BackgroundColor="#CC000000"
+             Shell.NavBarIsVisible="False">
+
+    <!-- Full-screen semi-transparent overlay; tap outside card to dismiss -->
+    <Grid>
+        <Grid.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnBackgroundTapped" />
+        </Grid.GestureRecognizers>
+
+        <!-- Centered card — consume taps so they don't bubble to background -->
+        <Border HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="#1a1a2e"
+                StrokeShape="RoundRectangle 24"
+                Stroke="Transparent"
+                MaximumWidthRequest="320"
+                Padding="32">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCardTapped" />
+            </Border.GestureRecognizers>
+
+            <VerticalStackLayout Spacing="20" HorizontalOptions="Center">
+
+                <!-- Icon -->
+                <Label Text="⚡"
+                       FontSize="52"
+                       HorizontalOptions="Center" />
+
+                <!-- Headline -->
+                <Label Text="Enjoying Viva La Resistance?"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
+
+                <!-- Body -->
+                <Label Text="You've been using the app for a while — thanks for sticking around! Viva La Resistance is a one-person project. If it's saving you time, you can support it by picking up a copy on the store."
+                       FontSize="14"
+                       TextColor="#888888"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="WordWrap" />
+
+                <!-- Support button (primary) -->
+                <Border BackgroundColor="#0f3460"
+                        StrokeShape="RoundRectangle 12"
+                        Stroke="#e94560"
+                        StrokeThickness="1"
+                        Padding="16,12"
+                        HorizontalOptions="Fill">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSupportTapped" />
+                    </Border.GestureRecognizers>
+                    <Label Text="Support the project"
+                           FontSize="16"
+                           TextColor="White"
+                           HorizontalOptions="Center" />
+                </Border>
+
+                <!-- Dismiss button (secondary) -->
+                <Border BackgroundColor="Transparent"
+                        StrokeShape="RoundRectangle 12"
+                        Stroke="#444466"
+                        Padding="16,12"
+                        HorizontalOptions="Fill">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnDismissTapped" />
+                    </Border.GestureRecognizers>
+                    <Label Text="Thanks, maybe later"
+                           FontSize="16"
+                           TextColor="White"
+                           HorizontalOptions="Center" />
+                </Border>
+
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+
+</ContentPage>
