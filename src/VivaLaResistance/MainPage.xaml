@@ -2,92 +2,150 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:VivaLaResistance.ViewModels"
+             xmlns:controls="clr-namespace:VivaLaResistance.Controls"
              x:Class="VivaLaResistance.MainPage"
              x:DataType="viewmodels:MainViewModel"
-             Title="Resistor Scanner">
+             Title="Resistor Scanner"
+             NavigationPage.HasNavigationBar="False">
 
+    <!--
+        Full-screen stacked Grid — all children share the same cell (fill).
+        Z-order (bottom→top): camera surface → AR overlay → lighting → status HUD → permission overlay → error banner
+    -->
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
 
-        <!-- Camera Preview Placeholder -->
-        <!-- TODO: Replace with actual camera view (e.g., CameraView from CommunityToolkit.Maui) -->
-        <Grid Grid.Row="0" 
-              BackgroundColor="#1a1a2e"
-              x:Name="CameraContainer">
-            
-            <!-- Placeholder content while camera is not implemented -->
-            <VerticalStackLayout 
-                VerticalOptions="Center" 
-                HorizontalOptions="Center"
-                Spacing="20"
-                IsVisible="{Binding IsCameraNotReady}">
-                
-                <Label 
-                    Text="📷"
-                    FontSize="64"
-                    HorizontalOptions="Center" />
-                
-                <Label 
-                    Text="Camera Preview"
-                    FontSize="24"
-                    TextColor="White"
-                    HorizontalOptions="Center" />
-                
-                <Label 
-                    Text="Point camera at a resistor to detect its value"
-                    FontSize="14"
-                    TextColor="#888888"
-                    HorizontalOptions="Center" />
-            </VerticalStackLayout>
+        <!-- ── Layer 0: Camera preview surface ───────────────────────────────
+             ContentView placeholder named CameraPreview.
+             MainPage.xaml.cs attaches a platform native view here at runtime.
+             Background is deep-navy so the state overlays look correct
+             while the camera is initializing. -->
+        <ContentView x:Name="CameraPreview"
+                     BackgroundColor="#1a1a2e"
+                     SemanticProperties.Description="Live camera preview"
+                     ZIndex="0" />
 
-            <!-- AR Overlay Layer for detected resistors -->
-            <!-- This will contain dynamically positioned labels showing resistor values -->
-            <AbsoluteLayout x:Name="OverlayLayer" />
+        <!-- ── Layer 1: AR overlay (resistor value badges) ───────────────────
+             AbsoluteLayout lets MainPage code-behind position badge views
+             at the exact pixel coordinates reported by detection results. -->
+        <AbsoluteLayout x:Name="OverlayLayer"
+                        IsVisible="{Binding HasDetections}"
+                        ZIndex="1"
+                        InputTransparent="True" />
 
-        </Grid>
+        <!-- ── Layer 2: Lighting quality indicator ───────────────────────────
+             Anchored to the bottom; only visible when lighting is not Good. -->
+        <controls:LightingIndicatorView x:Name="LightingIndicator"
+                                        VerticalOptions="End"
+                                        ZIndex="2"
+                                        InputTransparent="True" />
 
-        <!-- Bottom Status Bar -->
-        <Grid Grid.Row="1" 
-              BackgroundColor="#16213e" 
-              Padding="16">
-            
+        <!-- ── Layer 3: Status / HUD bar ─────────────────────────────────────
+             Semi-transparent bar pinned to the bottom; always visible. -->
+        <Grid VerticalOptions="End"
+              BackgroundColor="#CC16213e"
+              Padding="16,12"
+              ZIndex="3">
+
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Status Text -->
-            <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
-                <Label 
-                    Text="{Binding StatusText}"
-                    FontSize="16"
-                    TextColor="White" />
-                
-                <Label 
-                    Text="{Binding TrialStatusText}"
-                    FontSize="12"
-                    TextColor="#888888"
-                    IsVisible="{Binding ShowTrialStatus}" />
+            <VerticalStackLayout Grid.Column="0" VerticalOptions="Center" Spacing="2">
+                <Label Text="{Binding StatusText}"
+                       FontSize="15"
+                       TextColor="White"
+                       SemanticProperties.Description="{Binding StatusText}" />
+                <Label Text="{Binding TrialStatusText}"
+                       FontSize="11"
+                       TextColor="#aaaaaa"
+                       IsVisible="{Binding ShowTrialStatus}" />
             </VerticalStackLayout>
 
-            <!-- Detected Count -->
-            <Frame Grid.Column="1"
-                   BackgroundColor="#0f3460"
-                   CornerRadius="20"
-                   Padding="12,8"
-                   BorderColor="Transparent"
-                   IsVisible="{Binding HasDetections}">
-                
-                <Label 
-                    Text="{Binding DetectionCountText}"
-                    FontSize="14"
-                    TextColor="White" />
-            </Frame>
-
+            <Border Grid.Column="1"
+                    BackgroundColor="#0f3460"
+                    StrokeShape="RoundRectangle 20"
+                    Stroke="Transparent"
+                    Padding="12,6"
+                    IsVisible="{Binding HasDetections}"
+                    SemanticProperties.Description="{Binding DetectionCountText}">
+                <Label Text="{Binding DetectionCountText}"
+                       FontSize="13"
+                       TextColor="White" />
+            </Border>
         </Grid>
+
+        <!-- ── Layer 4: Camera initializing overlay ──────────────────────────
+             Shown while awaiting permission + IFrameSource.StartAsync. -->
+        <VerticalStackLayout VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="20"
+                             IsVisible="{Binding IsCameraInitializing}"
+                             ZIndex="4"
+                             SemanticProperties.Description="Camera is starting">
+            <Label Text="📷"
+                   FontSize="64"
+                   HorizontalOptions="Center" />
+            <Label Text="Starting Camera…"
+                   FontSize="22"
+                   TextColor="White"
+                   HorizontalOptions="Center" />
+        </VerticalStackLayout>
+
+        <!-- ── Layer 4b: Permission-denied overlay ───────────────────────────
+             Shown when the user explicitly denied camera access. -->
+        <VerticalStackLayout VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="16"
+                             Padding="32,0"
+                             IsVisible="{Binding IsPermissionDenied}"
+                             ZIndex="4"
+                             SemanticProperties.Description="Camera permission required">
+            <Label Text="🔒"
+                   FontSize="64"
+                   HorizontalOptions="Center" />
+            <Label Text="Camera Access Required"
+                   FontSize="22"
+                   TextColor="White"
+                   HorizontalOptions="Center" />
+            <Label Text="This app needs your camera to detect resistor values."
+                   FontSize="14"
+                   TextColor="#aaaaaa"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center" />
+            <Button x:Name="OpenSettingsButton"
+                    Text="Open Settings"
+                    BackgroundColor="#e94560"
+                    TextColor="White"
+                    CornerRadius="10"
+                    Clicked="OnOpenSettingsClicked"
+                    SemanticProperties.Hint="Opens device settings to grant camera permission" />
+        </VerticalStackLayout>
+
+        <!-- ── Layer 5: Camera error banner ──────────────────────────────────
+             Slide-in banner at the top for structured camera errors. -->
+        <Border VerticalOptions="Start"
+                BackgroundColor="#CC8B0000"
+                Padding="16,12"
+                IsVisible="{Binding HasCameraError}"
+                ZIndex="5"
+                SemanticProperties.Description="{Binding CameraErrorMessage}">
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0"
+                       Text="{Binding CameraErrorMessage}"
+                       TextColor="White"
+                       FontSize="13"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1"
+                        Text="✕"
+                        BackgroundColor="Transparent"
+                        TextColor="White"
+                        FontSize="16"
+                        Padding="8,0"
+                        Clicked="OnDismissErrorClicked"
+                        SemanticProperties.Hint="Dismiss error message" />
+            </Grid>
+        </Border>
 
     </Grid>
 
