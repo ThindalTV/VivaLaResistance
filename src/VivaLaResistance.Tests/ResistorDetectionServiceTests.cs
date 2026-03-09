@@ -169,7 +169,7 @@ public class ResistorDetectionServiceTests
 
     #region IDisposable Tests (covers #31)
 
-    [Fact(Skip = "Pending implementation - ResistorDetectionService should implement IDisposable")]
+    [Fact]
     public void ResistorDetectionService_ImplementsIDisposable()
     {
         // NOTE: ResistorDetectionService should implement IDisposable to clean up resources
@@ -187,7 +187,7 @@ public class ResistorDetectionServiceTests
         Assert.IsAssignableFrom<IDisposable>(service);
     }
 
-    [Fact(Skip = "Pending implementation - OnnxResistorLocalizationService should implement IDisposable")]
+    [Fact]
     public void OnnxResistorLocalizationService_ImplementsIDisposable()
     {
         // NOTE: OnnxResistorLocalizationService should implement IDisposable
@@ -331,19 +331,49 @@ public class ResistorDetectionServiceTests
 
     #region Performance/Frame Skip Logic Tests (covers #27)
 
-    [Fact(Skip = "Pending implementation - Frame skip logic not yet implemented")]
+    [Fact]
     public async Task DetectResistorsAsync_WhenDetectionInProgress_NewFrameIsSkipped()
     {
-        // This test verifies that when a detection is already running,
-        // a new frame arriving should be skipped (not queued)
-        // 
-        // Implementation strategy: Use a SemaphoreSlim(1,1) with TryWait(0)
-        // - If TryWait succeeds, process the frame
-        // - If TryWait fails, return empty immediately (frame skipped)
-        
-        // TODO: Implement frame skip logic in ResistorDetectionService
-        
-        Assert.True(true); // Placeholder
+        // Arrange
+        var mockLocalization = new Mock<IResistorLocalizationService>();
+        var mockCalculator = new Mock<IResistorValueCalculatorService>();
+        var mockLogger = new Mock<ILogger<ResistorDetectionService>>();
+
+        var inferenceStarted = new TaskCompletionSource<bool>();
+        var inferenceGate = new TaskCompletionSource<bool>();
+
+        mockLocalization.Setup(x => x.InitializeAsync()).Returns(Task.CompletedTask);
+        mockLocalization.Setup(x => x.IsInitialized).Returns(true);
+        mockLocalization
+            .Setup(x => x.InferAsync(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns(async () =>
+            {
+                inferenceStarted.TrySetResult(true);
+                await inferenceGate.Task; // Block until released
+                return (IReadOnlyList<ResistorBoundingBox>)Array.Empty<ResistorBoundingBox>();
+            });
+
+        var service = new ResistorDetectionService(mockLocalization.Object, mockCalculator.Object, mockLogger.Object);
+        await service.InitializeAsync();
+
+        var frameData = new byte[640 * 480 * 4];
+
+        // Act: start first frame (will block inside InferAsync)
+        var firstFrameTask = service.DetectResistorsAsync(frameData, 640, 480);
+        await inferenceStarted.Task; // Wait until the first inference has started
+
+        // Second frame should be dropped immediately (semaphore taken)
+        var secondResult = await service.DetectResistorsAsync(frameData, 640, 480);
+
+        // Unblock the first inference
+        inferenceGate.SetResult(true);
+        await firstFrameTask;
+
+        // Assert: second frame was skipped (returned empty without calling InferAsync a second time)
+        Assert.Empty(secondResult);
+        mockLocalization.Verify(
+            x => x.InferAsync(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Once);
     }
 
     #endregion

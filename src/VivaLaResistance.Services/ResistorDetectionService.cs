@@ -17,8 +17,14 @@ using VivaLaResistance.Core.Models;
 /// - Target: less than 100ms per frame on mid-range devices
 /// - Confidence threshold: 0.65 (filters low-confidence detections)
 /// - Supports multiple resistors per frame
+/// 
+/// Frame-skip strategy (issue #27):
+/// Uses a SemaphoreSlim(1,1) as a non-blocking gate. When a new camera frame arrives,
+/// TryWait(0) is called: if inference is already running the semaphore is taken and the
+/// new frame is dropped immediately rather than queued. This keeps latency bounded and
+/// prevents a backlog of stale frames building up on slow devices.
 /// </summary>
-public class ResistorDetectionService : IResistorDetectionService
+public class ResistorDetectionService : IResistorDetectionService, IDisposable
 {
     // Minimum confidence threshold for accepting detections (0.65 = 65%)
     // Lower values increase recall but add false positives; higher values increase precision.
@@ -32,6 +38,12 @@ public class ResistorDetectionService : IResistorDetectionService
 
     // Track previous frame's detections for hysteresis (reduce flicker)
     private readonly Dictionary<Guid, ResistorReading> _previousDetections = new();
+
+    // Non-blocking semaphore for frame-skip throttle: only one inference at a time.
+    // If TryWait(0) returns false the incoming frame is dropped (never queued).
+    private readonly SemaphoreSlim _inferenceSemaphore = new(1, 1);
+
+    private bool _disposed;
 
     /// <inheritdoc />
     public bool IsInitialized { get; private set; }
@@ -89,6 +101,14 @@ public class ResistorDetectionService : IResistorDetectionService
         if (imageData == null || imageData.Length != width * height * 4)
         {
             _logger.LogWarning("Invalid image data: expected {Expected} bytes (BGRA8888), got {Actual}", width * height * 4, imageData?.Length ?? 0);
+            return Array.Empty<ResistorReading>();
+        }
+
+        // Frame-skip throttle: drop incoming frame if a previous inference is still running.
+        // This keeps per-frame latency predictable and avoids building a backlog of stale frames.
+        if (!_inferenceSemaphore.Wait(0))
+        {
+            _logger.LogDebug("Frame dropped - inference already in progress (frame-skip throttle)");
             return Array.Empty<ResistorReading>();
         }
 
@@ -158,6 +178,10 @@ public class ResistorDetectionService : IResistorDetectionService
         {
             _logger.LogError(ex, "Unexpected error during resistor detection");
             return Array.Empty<ResistorReading>();
+        }
+        finally
+        {
+            _inferenceSemaphore.Release();
         }
     }
 
@@ -232,5 +256,26 @@ public class ResistorDetectionService : IResistorDetectionService
         // For now, return empty list so the service can be tested with ONNX localization
         _logger.LogDebug("Color band extraction not yet implemented - returning empty list");
         return Array.Empty<ColorBand>();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases the inference semaphore and any disposable downstream services.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+        if (disposing)
+        {
+            _inferenceSemaphore.Dispose();
+            (_localizationService as IDisposable)?.Dispose();
+        }
+        _disposed = true;
     }
 }
