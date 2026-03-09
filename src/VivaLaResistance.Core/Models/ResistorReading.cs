@@ -2,70 +2,24 @@ namespace VivaLaResistance.Core.Models;
 
 /// <summary>
 /// Represents a detected resistor in the camera frame with its calculated value and position.
+/// Immutable record type for thread-safe detection pipeline output.
 /// </summary>
-public class ResistorReading
-{
-    /// <summary>
-    /// Unique identifier for this reading within a frame.
-    /// </summary>
-    public Guid Id { get; set; } = Guid.NewGuid();
-
-    /// <summary>
-    /// The calculated resistance value in ohms.
-    /// </summary>
-    public double ValueInOhms { get; set; }
-
-    /// <summary>
-    /// Human-readable formatted value (e.g., "4.7kΩ", "1MΩ").
-    /// </summary>
-    public string FormattedValue { get; set; } = string.Empty;
-
-    /// <summary>
-    /// The color bands detected on this resistor, in order from first to last.
-    /// </summary>
-    public IReadOnlyList<ColorBand> ColorBands { get; set; } = [];
-
-    /// <summary>
-    /// Tolerance percentage (e.g., 5.0 for ±5%).
-    /// </summary>
-    public double TolerancePercent { get; set; }
-
-    /// <summary>
-    /// Bounding box of the detected resistor in normalized coordinates (0.0 to 1.0).
-    /// </summary>
-    public BoundingBox BoundingBox { get; set; } = new();
-
-    /// <summary>
-    /// Confidence score of the detection (0.0 to 1.0).
-    /// </summary>
-    public double Confidence { get; set; }
-
-    /// <summary>
-    /// Timestamp when this reading was captured.
-    /// </summary>
-    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
-}
-
-/// <summary>
-/// Represents a bounding box in normalized coordinates (0.0 to 1.0).
-/// </summary>
-public class BoundingBox
-{
-    /// <summary>X coordinate of the top-left corner (0.0 to 1.0).</summary>
-    public double X { get; set; }
-
-    /// <summary>Y coordinate of the top-left corner (0.0 to 1.0).</summary>
-    public double Y { get; set; }
-
-    /// <summary>Width of the bounding box (0.0 to 1.0).</summary>
-    public double Width { get; set; }
-
-    /// <summary>Height of the bounding box (0.0 to 1.0).</summary>
-    public double Height { get; set; }
-
-    /// <summary>Center X coordinate.</summary>
-    public double CenterX => X + (Width / 2);
-
-    /// <summary>Center Y coordinate.</summary>
-    public double CenterY => Y + (Height / 2);
-}
+/// <param name="Id">Unique identifier for this reading within a frame.</param>
+/// <param name="ValueInOhms">The calculated resistance value in ohms.</param>
+/// <param name="FormattedValue">Human-readable formatted value (e.g., "4.7kΩ", "1MΩ").</param>
+/// <param name="TolerancePercent">Tolerance percentage (e.g., 5.0 for ±5%).</param>
+/// <param name="BandCount">Number of color bands on this resistor (4, 5, or 6).</param>
+/// <param name="ColorBands">The color bands detected on this resistor, in order from first to last.</param>
+/// <param name="BoundingBox">Bounding box of the detected resistor in normalized coordinates.</param>
+/// <param name="Confidence">Detection confidence score (0.0 to 1.0).</param>
+/// <param name="Timestamp">Timestamp when this reading was captured.</param>
+public record ResistorReading(
+    Guid Id,
+    double ValueInOhms,
+    string FormattedValue,
+    double TolerancePercent,
+    int BandCount,
+    IReadOnlyList<ColorBand> ColorBands,
+    ResistorBoundingBox BoundingBox,
+    double Confidence,
+    DateTimeOffset Timestamp);

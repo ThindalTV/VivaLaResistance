@@ -205,9 +205,12 @@ public class MainViewModel : INotifyPropertyChanged
                 DetectedResistors.Clear();
                 foreach (var reading in readings)
                 {
-                    // Enrich with formatted value
-                    reading.FormattedValue = _calculatorService.FormatResistance(reading.ValueInOhms);
-                    DetectedResistors.Add(reading);
+                    // Enrich with formatted value using 'with' expression for immutable record
+                    var enrichedReading = reading with 
+                    { 
+                        FormattedValue = _calculatorService.FormatResistance(reading.ValueInOhms) 
+                    };
+                    DetectedResistors.Add(enrichedReading);
                 }
                 DetectionCount = readings.Count;
             });
