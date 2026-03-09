@@ -12,39 +12,82 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Camera Preview Placeholder -->
-        <!-- TODO: Replace with actual camera view (e.g., CameraView from CommunityToolkit.Maui) -->
+        <!-- Camera Preview Container -->
         <Grid Grid.Row="0" 
               BackgroundColor="#1a1a2e"
               x:Name="CameraContainer">
             
-            <!-- Placeholder content while camera is not implemented -->
+            <!-- Camera initializing state -->
             <VerticalStackLayout 
                 VerticalOptions="Center" 
                 HorizontalOptions="Center"
                 Spacing="20"
-                IsVisible="{Binding IsCameraNotReady}">
+                IsVisible="{Binding IsCameraInitializing}">
                 
                 <Label 
                     Text="📷"
                     FontSize="64"
-                    HorizontalOptions="Center" />
+                    HorizontalOptions="Center"
+                    SemanticProperties.Description="Camera icon" />
                 
                 <Label 
-                    Text="Camera Preview"
+                    Text="Starting Camera…"
                     FontSize="24"
                     TextColor="White"
-                    HorizontalOptions="Center" />
+                    HorizontalOptions="Center"
+                    SemanticProperties.Description="Starting camera" />
                 
                 <Label 
                     Text="Point camera at a resistor to detect its value"
                     FontSize="14"
                     TextColor="#888888"
-                    HorizontalOptions="Center" />
+                    HorizontalOptions="Center"
+                    SemanticProperties.Description="Instructions for using the app" />
+            </VerticalStackLayout>
+
+            <!-- Permission denied state -->
+            <VerticalStackLayout 
+                VerticalOptions="Center" 
+                HorizontalOptions="Center"
+                Spacing="20"
+                Padding="32"
+                IsVisible="{Binding IsPermissionDenied}">
+                
+                <Label 
+                    Text="🔒"
+                    FontSize="64"
+                    HorizontalOptions="Center"
+                    SemanticProperties.Description="Lock icon" />
+                
+                <Label 
+                    Text="Camera Access Required"
+                    FontSize="24"
+                    TextColor="White"
+                    HorizontalOptions="Center"
+                    SemanticProperties.HeadingLevel="Level1" />
+                
+                <Label 
+                    Text="Camera access is required to use this app. Please enable in Settings."
+                    FontSize="14"
+                    TextColor="#888888"
+                    HorizontalOptions="Center"
+                    HorizontalTextAlignment="Center"
+                    SemanticProperties.Description="Camera permission required message" />
+                
+                <Button 
+                    Text="Open Settings"
+                    BackgroundColor="#e94560"
+                    TextColor="White"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    CornerRadius="8"
+                    Padding="24,12"
+                    Margin="0,16,0,0"
+                    Clicked="OnOpenSettingsClicked"
+                    SemanticProperties.Hint="Opens system settings to enable camera permission" />
             </VerticalStackLayout>
 
             <!-- AR Overlay Layer for detected resistors -->
-            <!-- This will contain dynamically positioned labels showing resistor values -->
             <AbsoluteLayout x:Name="OverlayLayer" />
 
         </Grid>
@@ -64,13 +107,15 @@
                 <Label 
                     Text="{Binding StatusText}"
                     FontSize="16"
-                    TextColor="White" />
+                    TextColor="White"
+                    SemanticProperties.Description="{Binding StatusText}" />
                 
                 <Label 
                     Text="{Binding TrialStatusText}"
                     FontSize="12"
                     TextColor="#888888"
-                    IsVisible="{Binding ShowTrialStatus}" />
+                    IsVisible="{Binding ShowTrialStatus}"
+                    SemanticProperties.Description="{Binding TrialStatusText}" />
             </VerticalStackLayout>
 
             <!-- Detected Count -->
@@ -84,7 +129,8 @@
                 <Label 
                     Text="{Binding DetectionCountText}"
                     FontSize="14"
-                    TextColor="White" />
+                    TextColor="White"
+                    SemanticProperties.Description="{Binding DetectionCountText}" />
             </Frame>
 
         </Grid>
