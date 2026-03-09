@@ -26,3 +26,37 @@
 **Build Verification:** MAUI project builds clean. Non-MAUI projects emit expected NETSDK1005 errors (by design).
 
 **PR Status:** Shipped to squad/30-app-icons-splash (no .squad/ commits per directive). Ready for platform testing by Natasha.
+
+### PR #54 — AR Overlay Controls (2026-03-10)
+
+**Status:** 🔄 Open, awaiting review
+
+**Summary:** Extracted AR overlay controls from stale `squad/8-resistor-detection-service` branch and implemented in new `squad/13-ar-overlay-controls` branch. Opened PR #54 for integration.
+
+**Changes Made:**
+- Created `ResistorOverlayDrawable.cs` — Core overlay rendering engine
+- Created `ResistorOverlayView.cs` — XAML-bindable view component
+- Modified `MainPage.xaml` — Implemented full-screen ZIndex layered layout:
+  - ZIndex 0: Camera feed (background)
+  - ZIndex 1: Overlay canvas
+  - ZIndex 2: Lighting indicator
+  - ZIndex 3: HUD elements
+  - ZIndex 4: Error banner (topmost)
+- Modified `MainPage.xaml.cs` — Added `OnDismissErrorClicked` handler for error banner dismissal
+- Modified `MainViewModel.cs` — Added error handling infrastructure:
+  - `HasCameraError` property
+  - `CameraErrorMessage` property
+  - `OnCameraError()` method
+  - `ClearCameraError()` method
+
+**Critical Bug Fix:** Type System Alignment
+- **Issue:** Stale source branch used `ResistorReading.Id` as `string`, but main branch uses `Guid`
+- **Impact:** Would cause runtime failure when overlay code attempted to match resistor IDs
+- **Resolution:** Updated `ResistorOverlayDrawable` to use `Guid` keys; verified against live `DetectedResistors` collection
+- **Learning:** Always check type definitions in cross-branch merges; type mismatches are silent at compile time if both types exist
+
+**Build Status:** ✅ Clean (0 errors)
+
+**Design Alignment:** Overlay layering maintains non-intrusive design philosophy. Error handling preserves user agency (dismissible). Camera feed always visible.
+
+**PR Link:** https://github.com/ThindalTV/VivaLaResistance/pull/54
