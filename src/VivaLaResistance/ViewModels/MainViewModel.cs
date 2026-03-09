@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using VivaLaResistance.Core.Exceptions;
 using VivaLaResistance.Core.Interfaces;
 using VivaLaResistance.Core.Models;
 
@@ -23,6 +24,8 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _hasDetections;
     private int _detectionCount;
     private bool _isPermissionDenied;
+    private bool _hasCameraError;
+    private string _cameraErrorMessage = string.Empty;
 
     public MainViewModel(
         IResistorDetectionService detectionService,
@@ -137,6 +140,24 @@ public class MainViewModel : INotifyPropertyChanged
         ? "1 resistor"
         : $"{DetectionCount} resistors";
 
+    /// <summary>
+    /// Whether a camera error banner should be shown.
+    /// </summary>
+    public bool HasCameraError
+    {
+        get => _hasCameraError;
+        set => SetProperty(ref _hasCameraError, value);
+    }
+
+    /// <summary>
+    /// User-facing message describing the current camera error.
+    /// </summary>
+    public string CameraErrorMessage
+    {
+        get => _cameraErrorMessage;
+        set => SetProperty(ref _cameraErrorMessage, value);
+    }
+
     #endregion
 
     #region Initialization
@@ -178,6 +199,31 @@ public class MainViewModel : INotifyPropertyChanged
     {
         DetectedResistors.Clear();
         DetectionCount = 0;
+    }
+
+    /// <summary>
+    /// Updates the error banner based on a structured camera exception.
+    /// Called from MainPage when IFrameSource.ErrorOccurred fires.
+    /// </summary>
+    public void OnCameraError(Exception ex)
+    {
+        CameraErrorMessage = ex switch
+        {
+            CameraPermissionException => "Camera permission required. Please grant access in Settings.",
+            CameraUnavailableException => "Camera unavailable — another app may be using it.",
+            _ => $"Camera error: {ex.Message}"
+        };
+        HasCameraError = true;
+        IsCameraNotReady = true;
+    }
+
+    /// <summary>
+    /// Clears the camera error banner.
+    /// </summary>
+    public void ClearCameraError()
+    {
+        HasCameraError = false;
+        CameraErrorMessage = string.Empty;
     }
 
     #endregion
