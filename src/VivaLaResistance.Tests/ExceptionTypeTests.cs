@@ -89,8 +89,8 @@ namespace VivaLaResistance.Tests
         public void CameraPermissionException_DoesNotInheritFromCameraUnavailableException()
         {
             // Arrange & Act
-            var permissionException = new CameraPermissionException("Permission denied");
-            var unavailableException = new CameraUnavailableException("Camera unavailable");
+            Exception permissionException = new CameraPermissionException("Permission denied");
+            Exception unavailableException = new CameraUnavailableException("Camera unavailable");
 
             // Assert - they should be sibling exceptions, not parent/child
             Assert.False(permissionException is CameraUnavailableException);

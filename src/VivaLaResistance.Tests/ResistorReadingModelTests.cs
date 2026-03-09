@@ -13,17 +13,17 @@ public class ResistorReadingModelTests
     public void ResistorReading_HasExpectedProperties()
     {
         // Arrange & Act
-        var reading = new ResistorReading
-        {
-            Id = Guid.NewGuid(),
-            ValueInOhms = 4700,
-            FormattedValue = "4.7kΩ",
-            ColorBands = new[] { ColorBand.Yellow, ColorBand.Violet, ColorBand.Red, ColorBand.Gold },
-            TolerancePercent = 5.0,
-            BoundingBox = new BoundingBox { X = 0.1, Y = 0.2, Width = 0.3, Height = 0.4 },
-            Confidence = 0.95,
-            Timestamp = DateTimeOffset.UtcNow
-        };
+        var reading = new ResistorReading(
+            Id: Guid.NewGuid(),
+            ValueInOhms: 4700,
+            FormattedValue: "4.7kΩ",
+            TolerancePercent: 5.0,
+            BandCount: 4,
+            ColorBands: new[] { ColorBand.Yellow, ColorBand.Violet, ColorBand.Red, ColorBand.Gold },
+            BoundingBox: new ResistorBoundingBox(X: 0.1f, Y: 0.2f, Width: 0.3f, Height: 0.4f, Confidence: 0.95f),
+            Confidence: 0.95,
+            Timestamp: DateTimeOffset.UtcNow
+        );
 
         // Assert
         Assert.NotEqual(Guid.Empty, reading.Id);
@@ -40,10 +40,10 @@ public class ResistorReadingModelTests
     public void ResistorReading_Confidence_IsInValidRange()
     {
         // Arrange & Act
-        var reading = new ResistorReading
-        {
-            Confidence = 0.85
-        };
+        var reading = new ResistorReading(
+            Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+            new ResistorBoundingBox(0, 0, 0, 0, 0), 0.85, DateTimeOffset.UtcNow
+        );
 
         // Assert
         Assert.InRange(reading.Confidence, 0.0, 1.0);
@@ -53,8 +53,8 @@ public class ResistorReadingModelTests
     public void ResistorReading_ConfidenceBoundaries_AreValid()
     {
         // Arrange & Act
-        var readingMin = new ResistorReading { Confidence = 0.0 };
-        var readingMax = new ResistorReading { Confidence = 1.0 };
+        var readingMin = new ResistorReading(Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 0.0, DateTimeOffset.UtcNow);
+        var readingMax = new ResistorReading(Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 1.0, DateTimeOffset.UtcNow);
 
         // Assert
         Assert.Equal(0.0, readingMin.Confidence);
@@ -65,29 +65,28 @@ public class ResistorReadingModelTests
     public void ResistorReading_BoundingBox_HasCenterCalculations()
     {
         // Arrange
-        var boundingBox = new BoundingBox
-        {
-            X = 0.1,
-            Y = 0.2,
-            Width = 0.4,
-            Height = 0.6
-        };
+        var boundingBox = new ResistorBoundingBox(
+            X: 0.1f, Y: 0.2f, Width: 0.4f, Height: 0.6f, Confidence: 0.9f
+        );
 
-        var reading = new ResistorReading
-        {
-            BoundingBox = boundingBox
-        };
+        var reading = new ResistorReading(
+            Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+            boundingBox, 0.9, DateTimeOffset.UtcNow
+        );
 
         // Act & Assert
-        Assert.Equal(0.3, reading.BoundingBox.CenterX, precision: 10); // 0.1 + 0.4/2
-        Assert.Equal(0.5, reading.BoundingBox.CenterY, precision: 10); // 0.2 + 0.6/2
+        Assert.Equal(0.3, reading.BoundingBox.X + reading.BoundingBox.Width / 2, precision: 5); // 0.1 + 0.4/2
+        Assert.Equal(0.5, reading.BoundingBox.Y + reading.BoundingBox.Height / 2, precision: 5); // 0.2 + 0.6/2
     }
 
     [Fact]
     public void ResistorReading_DefaultColorBands_IsEmptyList()
     {
         // Arrange & Act
-        var reading = new ResistorReading();
+        var reading = new ResistorReading(
+            Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+            new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow
+        );
 
         // Assert
         Assert.NotNull(reading.ColorBands);
@@ -98,8 +97,8 @@ public class ResistorReadingModelTests
     public void ResistorReading_Id_IsUniqueByDefault()
     {
         // Arrange & Act
-        var reading1 = new ResistorReading();
-        var reading2 = new ResistorReading();
+        var reading1 = new ResistorReading(Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow);
+        var reading2 = new ResistorReading(Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow);
 
         // Assert
         Assert.NotEqual(reading1.Id, reading2.Id);
@@ -108,11 +107,11 @@ public class ResistorReadingModelTests
     [Fact]
     public void ResistorReading_FormattedValue_CanBeSet()
     {
-        // Arrange
-        var reading = new ResistorReading();
-
-        // Act
-        reading.FormattedValue = "10kΩ";
+        // Arrange & Act
+        var reading = new ResistorReading(
+            Guid.NewGuid(), 0, "10kΩ", 0, 0, Array.Empty<ColorBand>(),
+            new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow
+        );
 
         // Assert
         Assert.Equal("10kΩ", reading.FormattedValue);
@@ -122,13 +121,9 @@ public class ResistorReadingModelTests
     public void BoundingBox_NormalizedCoordinates_AreInValidRange()
     {
         // Arrange & Act
-        var boundingBox = new BoundingBox
-        {
-            X = 0.25,
-            Y = 0.30,
-            Width = 0.50,
-            Height = 0.40
-        };
+        var boundingBox = new ResistorBoundingBox(
+            X: 0.25f, Y: 0.30f, Width: 0.50f, Height: 0.40f, Confidence: 0.9f
+        );
 
         // Assert
         Assert.InRange(boundingBox.X, 0.0, 1.0);
@@ -144,7 +139,10 @@ public class ResistorReadingModelTests
         var beforeCreation = DateTimeOffset.UtcNow;
 
         // Act
-        var reading = new ResistorReading();
+        var reading = new ResistorReading(
+            Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+            new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow
+        );
         var afterCreation = DateTimeOffset.UtcNow;
 
         // Assert
@@ -156,7 +154,10 @@ public class ResistorReadingModelTests
     {
         // Arrange & Act
         var readings = Enumerable.Range(0, 10)
-            .Select(_ => new ResistorReading())
+            .Select(_ => new ResistorReading(
+                Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+                new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow
+            ))
             .ToList();
 
         var uniqueIds = readings.Select(r => r.Id).Distinct().Count();
