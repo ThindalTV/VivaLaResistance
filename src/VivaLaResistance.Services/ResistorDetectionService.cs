@@ -20,7 +20,7 @@ using VivaLaResistance.Core.Models;
 /// 
 /// Frame-skip strategy (issue #27):
 /// Uses a SemaphoreSlim(1,1) as a non-blocking gate. When a new camera frame arrives,
-/// TryWait(0) is called: if inference is already running the semaphore is taken and the
+/// Wait(0) is called: if inference is already running the semaphore is taken and the
 /// new frame is dropped immediately rather than queued. This keeps latency bounded and
 /// prevents a backlog of stale frames building up on slow devices.
 /// </summary>
@@ -40,7 +40,7 @@ public class ResistorDetectionService : IResistorDetectionService, IDisposable
     private readonly Dictionary<Guid, ResistorReading> _previousDetections = new();
 
     // Non-blocking semaphore for frame-skip throttle: only one inference at a time.
-    // If TryWait(0) returns false the incoming frame is dropped (never queued).
+    // If Wait(0) returns false the incoming frame is dropped (never queued).
     private readonly SemaphoreSlim _inferenceSemaphore = new(1, 1);
 
     private bool _disposed;
