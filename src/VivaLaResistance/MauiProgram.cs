@@ -57,13 +57,6 @@ public static class MauiProgram
         // Infrastructure services
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddSingleton<IPreferencesWrapper, MauiPreferencesWrapper>();
-
-        // Platform-specific camera frame source
-#if ANDROID
-        services.AddSingleton<IFrameSource, Platforms.Android.CameraFrameSource>();
-#elif IOS
-        services.AddSingleton<IFrameSource, Platforms.iOS.CameraFrameSource>();
-#endif
     }
 
     private static void RegisterViewModels(IServiceCollection services)
