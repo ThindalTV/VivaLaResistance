@@ -1,11 +1,13 @@
-#nullable enable
+﻿#nullable enable
 
 using AVFoundation;
 using CoreFoundation;
 using CoreMedia;
 using CoreVideo;
 using Foundation;
+using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
+using VivaLaResistance.Core.Exceptions;
 using VivaLaResistance.Core.Interfaces;
 using VivaLaResistance.Core.Models;
 
@@ -24,6 +26,7 @@ public sealed class CameraFrameSource : IFrameSource, IDisposable
     private const int MaxFps = 15;
     private const int MinFps = 10;
 
+    private readonly ILogger<CameraFrameSource> _logger;
     private AVCaptureSession? _session;
     private AVCaptureVideoDataOutput? _videoOutput;
     private SampleBufferDelegate? _delegate;
@@ -35,90 +38,139 @@ public sealed class CameraFrameSource : IFrameSource, IDisposable
     public event EventHandler<CameraFrame>? FrameAvailable;
 
     /// <inheritdoc />
-    public bool IsRunning => _isRunning;
+    public event EventHandler<Exception>? ErrorOccurred;
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">No back camera or session configuration failure.</exception>
+    public bool IsRunning => _isRunning;
+
+    public CameraFrameSource(ILogger<CameraFrameSource> logger)
+    {
+        _logger = logger;
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="CameraPermissionException">Camera access denied or not yet granted.</exception>
+    /// <exception cref="CameraUnavailableException">No camera device or session configuration failure.</exception>
     public Task StartAsync()
     {
         if (_isRunning)
             return Task.CompletedTask;
 
-        _captureQueue = new DispatchQueue("com.vivalaresistance.camera", false);
-        _session = new AVCaptureSession { SessionPreset = AVCaptureSession.PresetMedium };
+        _logger.LogInformation("Starting camera capture");
 
-        // Back camera input
-        var device = AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video)
-            ?? throw new InvalidOperationException("No video capture device available on this device.");
-
-        var input = new AVCaptureDeviceInput(device, out var inputError);
-        if (inputError is not null)
-            throw new InvalidOperationException($"Camera input error: {inputError.LocalizedDescription}");
-
-        if (_session.CanAddInput(input))
-            _session.AddInput(input);
-
-        // Configure hardware frame rate (best-effort; ignore if unsupported format)
-        if (device.LockForConfiguration(out _))
+        try
         {
-            var targetFps = new CMTime(1, MaxFps);
-            var minFps = new CMTime(1, MinFps);
-            device.ActiveVideoMinFrameDuration = targetFps;
-            device.ActiveVideoMaxFrameDuration = minFps;
-            device.UnlockForConfiguration();
+            var authStatus = AVCaptureDevice.GetAuthorizationStatus(AVAuthorizationMediaType.Video);
+            if (authStatus == AVAuthorizationStatus.Denied || authStatus == AVAuthorizationStatus.Restricted)
+                throw new CameraPermissionException("Camera access denied. Please enable camera permissions in Settings.");
+            if (authStatus == AVAuthorizationStatus.NotDetermined)
+                throw new CameraPermissionException("Camera permissions not yet requested.");
+
+            _captureQueue = new DispatchQueue("com.vivalaresistance.camera", false);
+            _session = new AVCaptureSession { SessionPreset = AVCaptureSession.PresetMedium };
+
+            // Back camera input
+            var device = AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video)
+                ?? throw new CameraUnavailableException("No video capture device available on this device.");
+
+            var input = new AVCaptureDeviceInput(device, out var inputError);
+            if (inputError is not null)
+                throw new CameraUnavailableException($"Failed to create camera input: {inputError.LocalizedDescription}");
+
+            if (_session.CanAddInput(input))
+                _session.AddInput(input);
+
+            // Configure hardware frame rate (best-effort; ignore if unsupported format)
+            if (device.LockForConfiguration(out _))
+            {
+                var targetFps = new CMTime(1, MaxFps);
+                var minFps = new CMTime(1, MinFps);
+                device.ActiveVideoMinFrameDuration = targetFps;
+                device.ActiveVideoMaxFrameDuration = minFps;
+                device.UnlockForConfiguration();
+            }
+
+            // Video output — request BGRA8888 directly; no YUV conversion needed
+            _videoOutput = new AVCaptureVideoDataOutput
+            {
+                AlwaysDiscardsLateVideoFrames = true,
+                WeakVideoSettings = NSDictionary.FromObjectAndKey(
+                    NSNumber.FromUInt32((uint)CVPixelFormatType.CV32BGRA),
+                    CVPixelBuffer.PixelFormatTypeKey)
+            };
+
+            _delegate = new SampleBufferDelegate(OnSampleBuffer);
+            _videoOutput.SetSampleBufferDelegate(_delegate, _captureQueue);
+
+            if (_session.CanAddOutput(_videoOutput))
+                _session.AddOutput(_videoOutput);
+
+            _session.StartRunning();
+            _isRunning = true;
+            _logger.LogInformation("Camera capture started successfully");
+            return Task.CompletedTask;
         }
-
-        // Video output — request BGRA8888 directly; no YUV conversion needed
-        _videoOutput = new AVCaptureVideoDataOutput
+        catch (CameraPermissionException ex)
         {
-            AlwaysDiscardsLateVideoFrames = true,
-            WeakVideoSettings = NSDictionary.FromObjectAndKey(
-                NSNumber.FromUInt32((uint)CVPixelFormatType.CV32BGRA),
-                CVPixelBuffer.PixelFormatTypeKey)
-        };
-
-        _delegate = new SampleBufferDelegate(OnSampleBuffer);
-        _videoOutput.SetSampleBufferDelegate(_delegate, _captureQueue);
-
-        if (_session.CanAddOutput(_videoOutput))
-            _session.AddOutput(_videoOutput);
-
-        _session.StartRunning();
-        _isRunning = true;
-        return Task.CompletedTask;
+            _logger.LogError(ex, "Camera permission denied");
+            ErrorOccurred?.Invoke(this, ex);
+            throw;
+        }
+        catch (CameraUnavailableException ex)
+        {
+            _logger.LogError(ex, "Camera device unavailable");
+            ErrorOccurred?.Invoke(this, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start camera capture");
+            ErrorOccurred?.Invoke(this, ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
     public Task StopAsync()
     {
+        _logger.LogInformation("Stopping camera capture");
         _isRunning = false;
         _session?.StopRunning();
         _session = null;
         _videoOutput = null;
         _delegate?.Dispose();
         _delegate = null;
+        _logger.LogInformation("Camera capture stopped successfully");
         return Task.CompletedTask;
     }
 
     private void OnSampleBuffer(CMSampleBuffer sampleBuffer)
     {
-        using var imageBuffer = sampleBuffer.GetImageBuffer();
-        if (imageBuffer is not CVPixelBuffer pixelBuffer)
-            return;
+        try
+        {
+            using var imageBuffer = sampleBuffer.GetImageBuffer();
+            if (imageBuffer is not CVPixelBuffer pixelBuffer)
+                return;
 
-        var bgra = ExtractBgra(pixelBuffer);
-        var frame = new CameraFrame(
-            bgra,
-            (int)pixelBuffer.Width,
-            (int)pixelBuffer.Height,
-            DateTime.UtcNow);
+            var bgra = ExtractBgra(pixelBuffer);
+            var frame = new CameraFrame(
+                bgra,
+                (int)pixelBuffer.Width,
+                (int)pixelBuffer.Height,
+                DateTime.UtcNow);
 
-        FrameAvailable?.Invoke(this, frame);
+            FrameAvailable?.Invoke(this, frame);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Frame dropped");
+            ErrorOccurred?.Invoke(this, ex);
+        }
     }
 
     /// <summary>
     /// Copies BGRA8888 pixel data from a locked <see cref="CVPixelBuffer"/> into a new byte array.
-    /// Handles row padding (bytesPerRow ≥ width × 4).
+    /// Handles row padding (bytesPerRow >= width x 4).
     /// </summary>
     private static byte[] ExtractBgra(CVPixelBuffer pixelBuffer)
     {

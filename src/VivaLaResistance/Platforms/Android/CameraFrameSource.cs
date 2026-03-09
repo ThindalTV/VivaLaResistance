@@ -1,10 +1,12 @@
-#nullable enable
+﻿#nullable enable
 
 using Android.Content;
 using Android.Graphics;
 using Android.Hardware.Camera2;
 using Android.Media;
 using Android.OS;
+using Microsoft.Extensions.Logging;
+using VivaLaResistance.Core.Exceptions;
 using VivaLaResistance.Core.Interfaces;
 using VivaLaResistance.Core.Models;
 
@@ -24,6 +26,7 @@ public sealed class CameraFrameSource : IFrameSource, IDisposable
     // Software frame-rate cap: skip frames that arrive faster than ~15 FPS.
     private const long FrameIntervalMs = 1000 / 15;
 
+    private readonly ILogger<CameraFrameSource> _logger;
     private CameraDevice? _cameraDevice;
     private CameraCaptureSession? _captureSession;
     private ImageReader? _imageReader;
@@ -37,67 +40,99 @@ public sealed class CameraFrameSource : IFrameSource, IDisposable
     public event EventHandler<CameraFrame>? FrameAvailable;
 
     /// <inheritdoc />
+    public event EventHandler<Exception>? ErrorOccurred;
+
+    /// <inheritdoc />
     public bool IsRunning => _isRunning;
+
+    public CameraFrameSource(ILogger<CameraFrameSource> logger)
+    {
+        _logger = logger;
+    }
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">No active Android activity or no back camera.</exception>
+    /// <exception cref="CameraUnavailableException">Camera hardware failed to open.</exception>
     public async Task StartAsync()
     {
         if (_isRunning)
             return;
 
-        StartBackgroundThread();
+        _logger.LogInformation("Starting camera capture");
 
-        var activity = global::Android.App.Application.Context
-            ?? throw new InvalidOperationException("Android application context not available.");
+        try
+        {
+            StartBackgroundThread();
 
-        var cameraManager = (CameraManager?)activity.GetSystemService(Context.CameraService)
-            ?? throw new InvalidOperationException("CameraManager not available.");
+            var activity = global::Android.App.Application.Context
+                ?? throw new InvalidOperationException("Android application context not available.");
 
-        var cameraId = FindBackCameraId(cameraManager);
+            var cameraManager = (CameraManager?)activity.GetSystemService(Context.CameraService)
+                ?? throw new InvalidOperationException("CameraManager not available.");
 
-        _imageReader = ImageReader.NewInstance(CaptureWidth, CaptureHeight, global::Android.Graphics.ImageFormatType.Yuv420888, 2)!;
-        _imageReader.SetOnImageAvailableListener(new ImageAvailableListener(OnImageAvailable), _backgroundHandler);
+            var cameraId = FindBackCameraId(cameraManager);
 
-        var openTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var stateCallback = new CameraStateCallback(
-            onOpened: device =>
-            {
-                _cameraDevice = device;
-                openTcs.TrySetResult(true);
-            },
-            onDisconnected: device =>
-            {
-                device.Close();
-                _cameraDevice = null;
-                openTcs.TrySetResult(false);
-            },
-            onError: (device, error) =>
-            {
-                device.Close();
-                _cameraDevice = null;
-                openTcs.TrySetException(new InvalidOperationException($"Camera open error: {error}"));
-            });
+            _imageReader = ImageReader.NewInstance(CaptureWidth, CaptureHeight, global::Android.Graphics.ImageFormatType.Yuv420888, 2)!;
+            _imageReader.SetOnImageAvailableListener(new ImageAvailableListener(OnImageAvailable), _backgroundHandler);
 
-        cameraManager.OpenCamera(cameraId, stateCallback, _backgroundHandler);
-        var opened = await openTcs.Task.ConfigureAwait(false);
+            var openTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var stateCallback = new CameraStateCallback(
+                onOpened: device =>
+                {
+                    _cameraDevice = device;
+                    openTcs.TrySetResult(true);
+                },
+                onDisconnected: device =>
+                {
+                    device.Close();
+                    _cameraDevice = null;
+                    openTcs.TrySetResult(false);
+                },
+                onError: (device, error) =>
+                {
+                    device.Close();
+                    _cameraDevice = null;
+                    openTcs.TrySetException(new CameraUnavailableException($"Camera failed to open (error code: {error})."));
+                });
 
-        if (!opened || _cameraDevice is null)
-            return;
+            cameraManager.OpenCamera(cameraId, stateCallback, _backgroundHandler);
+            var opened = await openTcs.Task.ConfigureAwait(false);
 
-        await CreateCaptureSessionAsync().ConfigureAwait(false);
-        _isRunning = true;
+            if (!opened || _cameraDevice is null)
+                return;
+
+            await CreateCaptureSessionAsync().ConfigureAwait(false);
+            _isRunning = true;
+            _logger.LogInformation("Camera capture started successfully");
+        }
+        catch (CameraUnavailableException ex)
+        {
+            _logger.LogError(ex, "Camera device unavailable");
+            ErrorOccurred?.Invoke(this, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start camera capture");
+            ErrorOccurred?.Invoke(this, ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
     public Task StopAsync()
     {
+        _logger.LogInformation("Stopping camera capture");
         _isRunning = false;
         try
         {
             _captureSession?.Close();
             _cameraDevice?.Close();
             _imageReader?.Close();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error occurred while stopping camera - cleaning up");
         }
         finally
         {
@@ -106,6 +141,7 @@ public sealed class CameraFrameSource : IFrameSource, IDisposable
             _imageReader = null;
             StopBackgroundThread();
         }
+        _logger.LogInformation("Camera capture stopped successfully");
         return Task.CompletedTask;
     }
 
@@ -164,6 +200,11 @@ public sealed class CameraFrameSource : IFrameSource, IDisposable
             var bgra = ConvertYuvToBgra(image);
             var frame = new CameraFrame(bgra, image.Width, image.Height, DateTime.UtcNow);
             FrameAvailable?.Invoke(this, frame);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error processing camera frame - frame dropped");
+            ErrorOccurred?.Invoke(this, ex);
         }
         finally
         {
