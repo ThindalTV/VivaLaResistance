@@ -5,10 +5,11 @@ using VivaLaResistance.Core.Models;
 
 namespace VivaLaResistance.Services;
 
-public class OnnxResistorLocalizationService : IResistorLocalizationService
+public class OnnxResistorLocalizationService : IResistorLocalizationService, IDisposable
 {
     private readonly ILogger<OnnxResistorLocalizationService> _logger;
     private InferenceSession? _session;
+    private bool _disposed;
 
     public OnnxResistorLocalizationService(ILogger<OnnxResistorLocalizationService> logger)
     {
@@ -57,5 +58,26 @@ public class OnnxResistorLocalizationService : IResistorLocalizationService
             _logger.LogError(ex, "Unexpected error during ONNX inference - returning empty results");
             return Task.FromResult<IReadOnlyList<ResistorBoundingBox>>(Array.Empty<ResistorBoundingBox>());
         }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases the ONNX InferenceSession and any associated native resources.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+        if (disposing)
+        {
+            _session?.Dispose();
+            _session = null;
+        }
+        _disposed = true;
     }
 }
