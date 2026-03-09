@@ -46,26 +46,10 @@
                        HorizontalTextAlignment="Center"
                        LineBreakMode="WordWrap" />
 
-                <!-- Support button (primary) -->
+                <!-- Dismiss button -->
                 <Border BackgroundColor="#0f3460"
                         StrokeShape="RoundRectangle 12"
-                        Stroke="#e94560"
-                        StrokeThickness="1"
-                        Padding="16,12"
-                        HorizontalOptions="Fill">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnSupportTapped" />
-                    </Border.GestureRecognizers>
-                    <Label Text="Support the project"
-                           FontSize="16"
-                           TextColor="White"
-                           HorizontalOptions="Center" />
-                </Border>
-
-                <!-- Dismiss button (secondary) -->
-                <Border BackgroundColor="Transparent"
-                        StrokeShape="RoundRectangle 12"
-                        Stroke="#444466"
+                        Stroke="Transparent"
                         Padding="16,12"
                         HorizontalOptions="Fill">
                     <Border.GestureRecognizers>
