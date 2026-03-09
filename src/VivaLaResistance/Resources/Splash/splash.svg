@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- VivaLaResistance splash screen icon — no background fill (MAUI applies Color="#121212" separately) -->
+<!-- Same 4.7kΩ resistor graphic as the app icon foreground -->
 <svg viewBox="0 0 456 456" xmlns="http://www.w3.org/2000/svg">
-  <rect x="0" y="0" width="456" height="456" fill="#512BD4"/>
-  <text x="228" y="250" font-family="Arial" font-size="64" fill="white" text-anchor="middle">VLR</text>
+  <!-- Lead wires -->
+  <line x1="48" y1="228" x2="138" y2="228"
+        stroke="#4FC3F7" stroke-width="12" stroke-linecap="round"/>
+  <line x1="318" y1="228" x2="408" y2="228"
+        stroke="#4FC3F7" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Resistor body -->
+  <rect x="128" y="178" width="200" height="100" rx="20" ry="20"
+        fill="#F5E6D3"/>
+
+  <!-- Color bands: Yellow(4) Violet(7) Red(×100) Gold(±5%) -->
+  <rect x="158" y="178" width="24" height="100" fill="#FFD700"/>
+  <rect x="198" y="178" width="24" height="100" fill="#8B00FF"/>
+  <rect x="238" y="178" width="24" height="100" fill="#FF0000"/>
+  <rect x="288" y="178" width="24" height="100" fill="#D4AF37"/>
 </svg>
