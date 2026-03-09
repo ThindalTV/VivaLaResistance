@@ -43,6 +43,8 @@ public class ResistorDetectionService : IResistorDetectionService, IDisposable
     // If TryWait(0) returns false the incoming frame is dropped (never queued).
     private readonly SemaphoreSlim _inferenceSemaphore = new(1, 1);
 
+    private volatile bool _isPaused;
+
     private bool _disposed;
 
     /// <inheritdoc />
@@ -85,6 +87,17 @@ public class ResistorDetectionService : IResistorDetectionService, IDisposable
             IsInitialized = true;
         }
     }
+    /// <inheritdoc />
+    public void Pause()
+    {
+        _isPaused = true;
+    }
+
+    /// <inheritdoc />
+    public void Resume()
+    {
+        _isPaused = false;
+    }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ResistorReading>> DetectResistorsAsync(
@@ -97,6 +110,8 @@ public class ResistorDetectionService : IResistorDetectionService, IDisposable
         {
             throw new InvalidOperationException("Detection service must be initialized before use. Call InitializeAsync first.");
         }
+
+        if (_isPaused) return Array.Empty<ResistorReading>();
 
         if (imageData == null || imageData.Length != width * height * 4)
         {

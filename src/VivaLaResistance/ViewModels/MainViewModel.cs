@@ -186,7 +186,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     /// <summary>
     /// Processes a camera frame and updates detected resistors.
-    /// Called by the camera handler for each frame.
+    /// Called by MainPage for each frame delivered by IFrameSource.
     /// </summary>
     public async Task ProcessFrameAsync(byte[] imageData, int width, int height)
     {
