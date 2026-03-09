@@ -1,4 +1,7 @@
+﻿#nullable enable
+
 using AVFoundation;
+using CoreFoundation;
 using CoreMedia;
 using CoreVideo;
 using Foundation;
@@ -11,20 +14,33 @@ using VivaLaResistance.Core.Models;
 namespace VivaLaResistance.Platforms.iOS;
 
 /// <summary>
-/// iOS implementation of IFrameSource using AVFoundation.
-/// Delivers frames in BGRA8888 format.
+/// iOS AVFoundation implementation of <see cref="IFrameSource"/>.
+/// Delivers BGRA8888 frames at 15 FPS using <see cref="AVCaptureSession"/> with
+/// <c>kCVPixelFormatType_32BGRA</c> — no per-frame pixel conversion required.
+/// Caller is responsible for requesting camera usage permission (<c>NSCameraUsageDescription</c>)
+/// before calling <see cref="StartAsync"/>.
 /// </summary>
-public class CameraFrameSource : IFrameSource, IDisposable
+public sealed class CameraFrameSource : IFrameSource, IDisposable
 {
-    private readonly ILogger<CameraFrameSource> _logger;
-    private AVCaptureSession? _captureSession;
-    private AVCaptureVideoDataOutput? _videoOutput;
-    private SampleBufferDelegate? _sampleBufferDelegate;
-    private bool _isRunning;
+    // Hardware frame rate: 15 FPS max, 10 FPS min.
+    private const int MaxFps = 15;
+    private const int MinFps = 10;
 
+    private readonly ILogger<CameraFrameSource> _logger;
+    private AVCaptureSession? _session;
+    private AVCaptureVideoDataOutput? _videoOutput;
+    private SampleBufferDelegate? _delegate;
+    private DispatchQueue? _captureQueue;
+    private bool _isRunning;
+    private bool _disposed;
+
+    /// <inheritdoc />
     public event EventHandler<CameraFrame>? FrameAvailable;
+
+    /// <inheritdoc />
     public event EventHandler<Exception>? ErrorOccurred;
 
+    /// <inheritdoc />
     public bool IsRunning => _isRunning;
 
     public CameraFrameSource(ILogger<CameraFrameSource> logger)
@@ -32,126 +48,185 @@ public class CameraFrameSource : IFrameSource, IDisposable
         _logger = logger;
     }
 
+    /// <inheritdoc />
+    /// <exception cref="CameraPermissionException">Camera access denied or not yet granted.</exception>
+    /// <exception cref="CameraUnavailableException">No camera device or session configuration failure.</exception>
     public Task StartAsync()
     {
+        if (_isRunning)
+            return Task.CompletedTask;
+
+        _logger.LogInformation("Starting camera capture");
+
         try
         {
-            _logger.LogInformation("Starting camera capture");
-
-            // Check camera authorization
             var authStatus = AVCaptureDevice.GetAuthorizationStatus(AVAuthorizationMediaType.Video);
             if (authStatus == AVAuthorizationStatus.Denied || authStatus == AVAuthorizationStatus.Restricted)
-            {
                 throw new CameraPermissionException("Camera access denied. Please enable camera permissions in Settings.");
-            }
-
             if (authStatus == AVAuthorizationStatus.NotDetermined)
+                throw new CameraPermissionException("Camera permissions not yet requested.");
+
+            _captureQueue = new DispatchQueue("com.vivalaresistance.camera", false);
+            _session = new AVCaptureSession { SessionPreset = AVCaptureSession.PresetMedium };
+
+            // Back camera input
+            var device = AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video)
+                ?? throw new CameraUnavailableException("No video capture device available on this device.");
+
+            var input = new AVCaptureDeviceInput(device, out var inputError);
+            if (inputError is not null)
+                throw new CameraUnavailableException($"Failed to create camera input: {inputError.LocalizedDescription}");
+
+            if (_session.CanAddInput(input))
+                _session.AddInput(input);
+
+            // Configure hardware frame rate (best-effort; ignore if unsupported format)
+            if (device.LockForConfiguration(out _))
             {
-                throw new CameraPermissionException("Camera permissions not yet requested. Please grant camera access.");
+                var targetFps = new CMTime(1, MaxFps);
+                var minFps = new CMTime(1, MinFps);
+                device.ActiveVideoMinFrameDuration = targetFps;
+                device.ActiveVideoMaxFrameDuration = minFps;
+                device.UnlockForConfiguration();
             }
 
-            // Get camera device
-            var videoDevice = AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
-            if (videoDevice == null)
+            // Video output — request BGRA8888 directly; no YUV conversion needed
+            _videoOutput = new AVCaptureVideoDataOutput
             {
-                throw new CameraUnavailableException("No camera device found on this device.");
-            }
+                AlwaysDiscardsLateVideoFrames = true,
+                WeakVideoSettings = NSDictionary.FromObjectAndKey(
+                    NSNumber.FromUInt32((uint)CVPixelFormatType.CV32BGRA),
+                    CVPixelBuffer.PixelFormatTypeKey)
+            };
 
-            // TODO: Create AVCaptureSession with BGRA8888 output
-            // 1. Create capture device input
-            // 2. Create video output with kCVPixelFormatType_32BGRA
-            // 3. Set up session and start running
+            _delegate = new SampleBufferDelegate(OnSampleBuffer);
+            _videoOutput.SetSampleBufferDelegate(_delegate, _captureQueue);
 
+            if (_session.CanAddOutput(_videoOutput))
+                _session.AddOutput(_videoOutput);
+
+            _session.StartRunning();
             _isRunning = true;
             _logger.LogInformation("Camera capture started successfully");
             return Task.CompletedTask;
         }
-        catch (CameraPermissionException)
+        catch (CameraPermissionException ex)
         {
-            _logger.LogError("Camera permission denied");
-            _isRunning = false;
+            _logger.LogError(ex, "Camera permission denied");
+            ErrorOccurred?.Invoke(this, ex);
             throw;
         }
-        catch (CameraUnavailableException)
+        catch (CameraUnavailableException ex)
         {
-            _logger.LogError("Camera device unavailable");
-            _isRunning = false;
+            _logger.LogError(ex, "Camera device unavailable");
+            ErrorOccurred?.Invoke(this, ex);
             throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start camera capture");
-            _isRunning = false;
             ErrorOccurred?.Invoke(this, ex);
             throw;
         }
     }
 
+    /// <inheritdoc />
     public Task StopAsync()
     {
-        try
-        {
-            _logger.LogInformation("Stopping camera capture");
-
-            if (_captureSession?.Running == true)
-            {
-                _captureSession.StopRunning();
-            }
-
-            _captureSession?.Dispose();
-            _captureSession = null;
-
-            _videoOutput?.Dispose();
-            _videoOutput = null;
-
-            _isRunning = false;
-            _logger.LogInformation("Camera capture stopped successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error occurred while stopping camera - cleaning up");
-            _isRunning = false;
-        }
-
+        _logger.LogInformation("Stopping camera capture");
+        _isRunning = false;
+        _session?.StopRunning();
+        _session = null;
+        _videoOutput = null;
+        _delegate?.Dispose();
+        _delegate = null;
+        _logger.LogInformation("Camera capture stopped successfully");
         return Task.CompletedTask;
     }
 
-    private void ProcessSampleBuffer(CMSampleBuffer sampleBuffer)
+    private void OnSampleBuffer(CMSampleBuffer sampleBuffer)
     {
         try
         {
-            using var imageBuffer = sampleBuffer.GetImageBuffer() as CVPixelBuffer;
-            if (imageBuffer == null)
+            using var imageBuffer = sampleBuffer.GetImageBuffer();
+            if (imageBuffer is not CVPixelBuffer pixelBuffer)
                 return;
 
-            // TODO: Extract BGRA8888 pixel data
-            // TODO: Create CameraFrame and raise FrameAvailable event
+            var bgra = ExtractBgra(pixelBuffer);
+            var frame = new CameraFrame(
+                bgra,
+                (int)pixelBuffer.Width,
+                (int)pixelBuffer.Height,
+                DateTime.UtcNow);
+
+            FrameAvailable?.Invoke(this, frame);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error processing camera frame - frame dropped");
+            _logger.LogWarning(ex, "Frame dropped");
             ErrorOccurred?.Invoke(this, ex);
         }
     }
 
-    private class SampleBufferDelegate : AVCaptureVideoDataOutputSampleBufferDelegate
+    /// <summary>
+    /// Copies BGRA8888 pixel data from a locked <see cref="CVPixelBuffer"/> into a new byte array.
+    /// Handles row padding (bytesPerRow >= width x 4).
+    /// </summary>
+    private static byte[] ExtractBgra(CVPixelBuffer pixelBuffer)
     {
-        private readonly Action<CMSampleBuffer> _onSampleBuffer;
-
-        public SampleBufferDelegate(Action<CMSampleBuffer> onSampleBuffer)
+        pixelBuffer.Lock(CVPixelBufferLock.ReadOnly);
+        try
         {
-            _onSampleBuffer = onSampleBuffer;
+            int width = (int)pixelBuffer.Width;
+            int height = (int)pixelBuffer.Height;
+            int bytesPerRow = (int)pixelBuffer.BytesPerRow;
+            nint baseAddress = pixelBuffer.BaseAddress;
+
+            var result = new byte[width * height * 4];
+
+            // Copy row-by-row to strip any row-stride padding.
+            for (int row = 0; row < height; row++)
+            {
+                nint srcOffset = baseAddress + row * bytesPerRow;
+                Marshal.Copy(srcOffset, result, row * width * 4, width * 4);
+            }
+
+            return result;
         }
-
-        public override void DidOutputSampleBuffer(AVCaptureOutput captureOutput, CMSampleBuffer sampleBuffer, AVCaptureConnection connection)
+        finally
         {
-            _onSampleBuffer(sampleBuffer);
-            sampleBuffer?.Dispose();
+            pixelBuffer.Unlock(CVPixelBufferLock.ReadOnly);
         }
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
+        if (_disposed)
+            return;
+        _disposed = true;
         StopAsync().GetAwaiter().GetResult();
+    }
+
+    // ── Inner helper type ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Bridges <see cref="AVCaptureVideoDataOutputSampleBufferDelegate"/> callbacks into a managed delegate.
+    /// </summary>
+    private sealed class SampleBufferDelegate : AVCaptureVideoDataOutputSampleBufferDelegate
+    {
+        private readonly Action<CMSampleBuffer> _onSampleBuffer;
+
+        public SampleBufferDelegate(Action<CMSampleBuffer> onSampleBuffer) =>
+            _onSampleBuffer = onSampleBuffer;
+
+        public override void DidOutputSampleBuffer(
+            AVCaptureOutput captureOutput,
+            CMSampleBuffer sampleBuffer,
+            AVCaptureConnection connection)
+        {
+            // sampleBuffer lifetime is managed by AVFoundation; process synchronously.
+            _onSampleBuffer(sampleBuffer);
+        }
     }
 }
