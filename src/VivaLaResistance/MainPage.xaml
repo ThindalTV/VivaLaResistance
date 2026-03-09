@@ -25,12 +25,14 @@
                      ZIndex="0" />
 
         <!-- ── Layer 1: AR overlay (resistor value badges) ───────────────────
-             AbsoluteLayout lets MainPage code-behind position badge views
-             at the exact pixel coordinates reported by detection results. -->
-        <AbsoluteLayout x:Name="OverlayLayer"
-                        IsVisible="{Binding HasDetections}"
-                        ZIndex="1"
-                        InputTransparent="True" />
+             ResistorOverlayView renders confidence-gated badges via a
+             GraphicsView canvas.  Normalized BoundingBox coords are mapped
+             to pixel positions inside the drawable.
+             Hysteresis: appear at ≥ 0.65 confidence, disappear below 0.60. -->
+        <controls:ResistorOverlayView x:Name="OverlayLayer"
+                                      ResistorReadings="{Binding DetectedResistors}"
+                                      ZIndex="1"
+                                      InputTransparent="True" />
 
         <!-- ── Layer 2: Lighting quality indicator ───────────────────────────
              Anchored to the bottom; only visible when lighting is not Good. -->
