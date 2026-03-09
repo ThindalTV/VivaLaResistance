@@ -144,7 +144,7 @@ public void ResistorDetectionService_ImplementsIDisposable()
 - **#46**: Opened on `squad/8-resistor-detection-service` branch
 - Code complete; awaiting Bruce's PR merge before this can be merged
 
-**Next Steps:**
+**Next Steps (at time of writing):**
 1. Monitor for Bruce's IDisposable and frame-skip implementations
 2. Un-skip related tests once implementations are complete and merged
 3. Validate end-to-end detection with actual HSV color extraction (post-MVP)
@@ -153,3 +153,29 @@ public void ResistorDetectionService_ImplementsIDisposable()
 - `.squad/orchestration-log/2026-03-09T16-53-52Z-natasha.md`
 - PR #46 (test suite)
 - `.squad/decisions.md` — Test Coverage decision (2026-03-09)
+
+---
+
+### 2026-03-09: IDisposable & Frame-Skip Tests — Verification Sprint
+
+**Task:** Verify and un-skip 4 previously-skipped tests now that Bruce implemented IDisposable (#31) and frame-skip throttle (#27) in commit `914a76a` on `squad/8-resistor-detection-service`.
+
+**Finding:** Tests were already un-skipped by Bruce as part of his implementation commit. No Natasha-side test changes were required.
+
+**Bruce's commit (`914a76a`) included:**
+- `ResistorDetectionService`: IDisposable pattern with `bool _disposed` guard; disposes `SemaphoreSlim` and `_localizationService` (via IDisposable cast)
+- `OnnxResistorLocalizationService`: IDisposable pattern with `bool _disposed` guard; disposes `InferenceSession`
+- Frame-skip throttle: `SemaphoreSlim(1,1)` with `Wait(0)` non-blocking gate; frames dropped if inference is in progress
+- Test file: un-skipped 2 IDisposable tests and replaced the frame-skip placeholder with a real concurrency test using `TaskCompletionSource`
+
+**Test Results (verified):**
+- **114 passing, 1 skipped, 0 failing**
+- Skipped: `DetectResistorsAsync_WithConfidenceThreshold_FiltersLowConfidenceDetections` — correctly still skipped pending HSV color band extraction
+
+**API Note:** The task description referenced `TryWait(0)` — `SemaphoreSlim` does not have a `TryWait` method. Bruce correctly used `Wait(0)` which is the non-blocking pattern (`Wait(millisecondsTimeout: 0)` returns `false` immediately if the semaphore cannot be acquired).
+
+**Expected count discrepancy:** The task anticipated 118 passing. Correct math: 111 + 3 un-skipped = 114. The 4th previously-skipped test was the color band confidence test which stays skipped.
+
+**Team Note:** Bruce un-skipped and updated Natasha's test file as part of his implementation commit. This is acceptable since the frame-skip test was a placeholder requiring a real concurrency implementation. Documented in `.squad/decisions/inbox/natasha-test-findings.md`.
+
+**Status:** PR #46 branch is clean — ready for team review.
