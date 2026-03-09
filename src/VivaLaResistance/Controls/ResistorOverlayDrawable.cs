@@ -8,7 +8,7 @@ namespace VivaLaResistance.Controls;
 /// Hysteresis: badges appear at confidence ≥ 0.65, disappear below 0.60 (per decisions.md).
 /// All coordinates use the normalized BoundingBox from ResistorReading (0–1 range).
 /// </summary>
-internal sealed class ResistorOverlayDrawable : IDrawable
+public sealed class ResistorOverlayDrawable : IDrawable
 {
     // ── Confidence thresholds (decisions.md — Bruce's confidence threshold) ──
     private const double ShowThreshold   = 0.65; // add badge when confidence first exceeds this
@@ -31,8 +31,8 @@ internal sealed class ResistorOverlayDrawable : IDrawable
 
     // Visible badges keyed by ResistorReading.Id (Guid).
     // Separate sets track which IDs are "active" for hysteresis logic.
-    private readonly Dictionary<Guid, ResistorReading> _visibleBadges = new();
-    private readonly HashSet<Guid> _activeIds = new();
+    internal readonly Dictionary<Guid, ResistorReading> _visibleBadges = new();
+    internal readonly HashSet<Guid> _activeIds = new();
 
     // ── Public API ────────────────────────────────────────────────────────────
 
