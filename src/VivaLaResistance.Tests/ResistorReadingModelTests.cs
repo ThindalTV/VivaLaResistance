@@ -14,7 +14,7 @@ public class ResistorReadingModelTests
     {
         // Arrange & Act
         var reading = new ResistorReading(
-            Id: Guid.NewGuid(),
+            Id: "det_150_200",
             ValueInOhms: 4700,
             FormattedValue: "4.7kΩ",
             TolerancePercent: 5.0,
@@ -26,7 +26,8 @@ public class ResistorReadingModelTests
         );
 
         // Assert
-        Assert.NotEqual(Guid.Empty, reading.Id);
+        Assert.NotNull(reading.Id);
+        Assert.NotEmpty(reading.Id);
         Assert.Equal(4700, reading.ValueInOhms);
         Assert.Equal("4.7kΩ", reading.FormattedValue);
         Assert.Equal(4, reading.ColorBands.Count);
@@ -41,7 +42,7 @@ public class ResistorReadingModelTests
     {
         // Arrange & Act
         var reading = new ResistorReading(
-            Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+            "det_0_0", 0, "", 0, 0, Array.Empty<ColorBand>(),
             new ResistorBoundingBox(0, 0, 0, 0, 0), 0.85, DateTimeOffset.UtcNow
         );
 
@@ -53,8 +54,8 @@ public class ResistorReadingModelTests
     public void ResistorReading_ConfidenceBoundaries_AreValid()
     {
         // Arrange & Act
-        var readingMin = new ResistorReading(Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 0.0, DateTimeOffset.UtcNow);
-        var readingMax = new ResistorReading(Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 1.0, DateTimeOffset.UtcNow);
+        var readingMin = new ResistorReading("det_0_0", 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 0.0, DateTimeOffset.UtcNow);
+        var readingMax = new ResistorReading("det_0_0", 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 1.0, DateTimeOffset.UtcNow);
 
         // Assert
         Assert.Equal(0.0, readingMin.Confidence);
@@ -70,7 +71,7 @@ public class ResistorReadingModelTests
         );
 
         var reading = new ResistorReading(
-            Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+            "det_150_250", 0, "", 0, 0, Array.Empty<ColorBand>(),
             boundingBox, 0.9, DateTimeOffset.UtcNow
         );
 
@@ -84,7 +85,7 @@ public class ResistorReadingModelTests
     {
         // Arrange & Act
         var reading = new ResistorReading(
-            Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+            "det_0_0", 0, "", 0, 0, Array.Empty<ColorBand>(),
             new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow
         );
 
@@ -94,14 +95,14 @@ public class ResistorReadingModelTests
     }
 
     [Fact]
-    public void ResistorReading_Id_IsUniqueByDefault()
+    public void ResistorReading_Id_IsDeterministicForSamePosition()
     {
-        // Arrange & Act
-        var reading1 = new ResistorReading(Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow);
-        var reading2 = new ResistorReading(Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow);
+        // Stable IDs derived from the same bbox position should be equal across frames
+        var reading1 = new ResistorReading("det_150_200", 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0.15f, 0.20f, 0.1f, 0.1f, 0), 0, DateTimeOffset.UtcNow);
+        var reading2 = new ResistorReading("det_150_200", 0, "", 0, 0, Array.Empty<ColorBand>(), new ResistorBoundingBox(0.15f, 0.20f, 0.1f, 0.1f, 0), 0, DateTimeOffset.UtcNow);
 
         // Assert
-        Assert.NotEqual(reading1.Id, reading2.Id);
+        Assert.Equal(reading1.Id, reading2.Id);
     }
 
     [Fact]
@@ -109,7 +110,7 @@ public class ResistorReadingModelTests
     {
         // Arrange & Act
         var reading = new ResistorReading(
-            Guid.NewGuid(), 0, "10kΩ", 0, 0, Array.Empty<ColorBand>(),
+            "det_0_0", 0, "10kΩ", 0, 0, Array.Empty<ColorBand>(),
             new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow
         );
 
@@ -140,7 +141,7 @@ public class ResistorReadingModelTests
 
         // Act
         var reading = new ResistorReading(
-            Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+            "det_0_0", 0, "", 0, 0, Array.Empty<ColorBand>(),
             new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow
         );
         var afterCreation = DateTimeOffset.UtcNow;
@@ -154,8 +155,8 @@ public class ResistorReadingModelTests
     {
         // Arrange & Act
         var readings = Enumerable.Range(0, 10)
-            .Select(_ => new ResistorReading(
-                Guid.NewGuid(), 0, "", 0, 0, Array.Empty<ColorBand>(),
+            .Select(i => new ResistorReading(
+                $"det_{i * 10}_{i * 10}", 0, "", 0, 0, Array.Empty<ColorBand>(),
                 new ResistorBoundingBox(0, 0, 0, 0, 0), 0, DateTimeOffset.UtcNow
             ))
             .ToList();
